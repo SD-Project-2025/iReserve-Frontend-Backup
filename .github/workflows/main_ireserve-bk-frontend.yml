@@ -1,4 +1,7 @@
-name: Build and deploy Node.js app to Azure Web App - ireserve-bk-frontend
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy React Vite app to Azure Web App - ireserve-bk-frontend
 
 on:
   push:
@@ -10,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -20,24 +23,11 @@ jobs:
         with:
           node-version: '18.x'
 
-      - name: npm install and build
-        run: |
-          npm install
-          npm run build
+      - name: Install dependencies
+        run: npm install
 
-      - name: Prepare deployment package
-        run: |
-          mkdir deploy
-          cp -r dist server.js package.json package-lock.json deploy/
-          cd deploy
-          zip -r ../release.zip .
-          cd ..
-
-      - name: Upload artifact for deployment
-        uses: actions/upload-artifact@v4
-        with:
-          name: node-app
-          path: release.zip
+      - name: Build the React app
+        run: npm run build  # This will create a build in the 'dist' folder
 
   deploy:
     runs-on: ubuntu-latest
@@ -46,17 +36,14 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
-      contents: read
+      id-token: write # This is required for requesting the JWT
+      contents: read # This is required for actions/checkout
 
     steps:
-      - name: Download artifact from build job
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: node-app
-
-      - name: Unzip artifact
-        run: unzip release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -71,4 +58,4 @@ jobs:
         with:
           app-name: 'ireserve-bk-frontend'
           slot-name: 'Production'
-          package: .
+          package: ./dist # Reference the build folder created by Vite
