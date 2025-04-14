@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     //@ts-ignore
     const Url = import.meta.env.VITE_API_URL
     console.log("API URL:", Url)
-    const redirectUri = `https://yellow-river-065faef1e.6.azurestaticapps.net/auth/callback`
+    const redirectUri = "https://yellow-river-065faef1e.6.azurestaticapps.net/auth/callback"
     window.location.href = `https://isereserve-backend.azurewebsites.net/api/v1/auth/google?redirect_uri=${encodeURIComponent(
       redirectUri
     )}`
