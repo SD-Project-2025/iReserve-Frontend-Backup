@@ -4,6 +4,9 @@ import path from "path"
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    outDir: 'dist',  // Default is 'dist'
+  },
   plugins: [react()],
   resolve: {
     alias: {
