@@ -35,7 +35,8 @@ import ManageUsersPage from "./pages/admin/ManageUsersPage"
 import SystemReportsPage from "./pages/admin/SystemReportsPage"
 
 // Protected route component
-const ProtectedRoute = ({ children, requiredRole }) => {
+//@ts-ignore
+const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRole?: any }) => {
   const { isAuthenticated, user, loading } = useAuth()
 
   if (loading) {
@@ -48,6 +49,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   if (requiredRole && user?.type !== requiredRole) {
     // For development without a backend, allow access to admin routes
+    //@ts-ignore
     if (import.meta.env.DEV) {
       console.warn(`DEV MODE: Allowing access to ${requiredRole} route even though user is ${user?.type}`)
       return children

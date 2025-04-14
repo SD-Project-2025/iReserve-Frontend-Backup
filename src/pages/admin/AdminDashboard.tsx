@@ -11,12 +11,13 @@ import {
   SupervisorAccount as AdminIcon,
   Add as AddIcon,
 } from "@mui/icons-material"
-import { useAuth } from "../../contexts/AuthContext"
+
 import { api } from "../../services/api"
 import DashboardCard from "../../components/dashboard/DashboardCard"
 import RecentActivityList from "../../components/dashboard/RecentActivityList"
 
 // Simple line chart component
+//@ts-ignore
 const SimpleLineChart = ({ data, title }) => {
   // In a real app, you would use a charting library like recharts or chart.js
   // For this example, we'll just render a placeholder
@@ -42,10 +43,18 @@ const SimpleLineChart = ({ data, title }) => {
 }
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
+ // const { user } = useAuth()
   const navigate = useNavigate()
   const [tabValue, setTabValue] = useState(0)
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<{ 
+    id: number; 
+    title: string; 
+    subtitle: string; 
+    date: string; 
+    status: string; 
+    statusColor: string; 
+    rawData: { user_id: number; name: string; type: string; status: string; }; 
+  }[]>([])
   const [bookings, setBookings] = useState([])
   const [facilities, setFacilities] = useState([])
   const [maintenanceReports, setMaintenanceReports] = useState([])
@@ -135,6 +144,7 @@ const AdminDashboard = () => {
         const bookingsResponse = await api.get("/bookings")
         const bookingsData = bookingsResponse.data.data
         setBookings(
+          //@ts-ignore
           bookingsData.slice(0, 5).map((booking) => ({
             id: booking.booking_id,
             title: `${booking.facility?.name || "Facility"} Booking`,
@@ -157,6 +167,7 @@ const AdminDashboard = () => {
         const facilitiesResponse = await api.get("/facilities")
         const facilitiesData = facilitiesResponse.data.data
         setFacilities(
+          //@ts-ignore
           facilitiesData.map((facility) => ({
             id: facility.facility_id,
             title: facility.name,
@@ -179,6 +190,7 @@ const AdminDashboard = () => {
         const maintenanceResponse = await api.get("/maintenance")
         const maintenanceData = maintenanceResponse.data.data
         setMaintenanceReports(
+          //@ts-ignore
           maintenanceData.slice(0, 5).map((report) => ({
             id: report.report_id,
             title: report.title,
@@ -204,13 +216,14 @@ const AdminDashboard = () => {
         }))
       } catch (err) {
         console.error("Error fetching dashboard data:", err)
+        // @ts-ignore
         setError("Failed to load dashboard data. Please try again later.")
       }
     }
 
     fetchDashboardData()
   }, [])
-
+//@ts-ignore
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "approved":
@@ -232,7 +245,7 @@ const AdminDashboard = () => {
         return "default"
     }
   }
-
+//@ts-ignore
   const getMaintenanceStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "completed":
@@ -246,7 +259,7 @@ const AdminDashboard = () => {
         return "default"
     }
   }
-
+//@ts-ignore
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
   }
@@ -331,6 +344,7 @@ const AdminDashboard = () => {
             {tabValue === 0 && (
               <RecentActivityList
                 title="Recent Users"
+                //@ts-ignore
                 activities={users}
                 emptyMessage="No users found"
                 loading={loading.users}

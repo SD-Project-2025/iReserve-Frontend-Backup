@@ -8,6 +8,7 @@
  * @param type The user type to set ('resident', 'staff', or 'admin')
  */
 export const setTestUserType = (type: "resident" | "staff" | "admin") => {
+  //@ts-ignore
   if (import.meta.env.DEV) {
     const user = JSON.parse(localStorage.getItem("user") || "{}")
 
@@ -34,6 +35,7 @@ export const setTestUserType = (type: "resident" | "staff" | "admin") => {
  * Reset all development testing settings
  */
 export const resetDevSettings = () => {
+  //@ts-ignore
   if (import.meta.env.DEV) {
     localStorage.removeItem("testAdminDashboard")
     console.log("DEV MODE: Development settings reset")

@@ -16,6 +16,7 @@ import {
 } from "@mui/material"
 
 interface Activity {
+  rawData: any
   id: number
   title: string
   subtitle?: string

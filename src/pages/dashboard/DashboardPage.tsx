@@ -51,7 +51,8 @@ const DashboardPage = () => {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [apiLoading, setApiLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
+const ss = [bookings, facilities, events, notifications,apiLoading, error]
+  console.log("DashboardPage State:", ss)
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate("/login")

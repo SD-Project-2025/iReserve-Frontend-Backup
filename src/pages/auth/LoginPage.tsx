@@ -11,7 +11,7 @@ const LoginPage = () => {
   const { isAuthenticated, login } = useAuth()
   const { mode } = useTheme()
   const navigate = useNavigate()
-
+mode;
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard")

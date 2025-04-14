@@ -43,7 +43,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 
-const drawerWidth = 260
+//const drawerWidth = 260
 
 const MainLayout = () => {
   const { user, logout } = useAuth()
