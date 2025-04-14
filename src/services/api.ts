@@ -2,7 +2,7 @@ import axios from "axios"
 
 export const api = axios.create({
   //@ts-ignore
-  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
+  baseURL: "https://isereserve-backend.azurewebsites.net/api/v1"
 })
 
 // Add a response interceptor to handle token expiration
