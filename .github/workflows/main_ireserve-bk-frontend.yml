@@ -1,4 +1,4 @@
-name: Build and deploy React Vite app to Azure Web App - ireserve-bk-frontend
+name: Build and deploy Vite app to Azure Web App - ireserve-bk-frontend
 
 on:
   push:
@@ -10,12 +10,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
@@ -23,11 +23,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build the React app
-        run: npm run build  # This will create the 'dist' folder or the custom output directory
+      - name: Build project
+        run: npm run build
 
-      - name: List contents of the build folder
-        run: ls -al ./dist  # This will confirm the presence of the build files
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist  # 👈 upload the 'dist' folder only
 
   deploy:
     runs-on: ubuntu-latest
@@ -36,10 +39,16 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # This is required for requesting the JWT
-      contents: read # This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist  # 👈 unpack into 'dist' so the deploy step can find it
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -53,4 +62,4 @@ jobs:
         with:
           app-name: 'ireserve-bk-frontend'
           slot-name: 'Production'
-          package: ./dist  # Make sure this matches the output directory
+          package: dist  # 👈 this now correctly points to the built files
