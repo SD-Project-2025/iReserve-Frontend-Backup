@@ -114,12 +114,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(() => {
     //@ts-ignore
-    const apiUrl = import.meta.env.VITE_API_URL || "/api/v1"
+    const Url = import.meta.env.VITE_API_URL
+    console.log("API URL:", Url)
     const redirectUri = `${window.location.origin}/auth/callback`
-    window.location.href = `${apiUrl}/auth/google?redirect_uri=${encodeURIComponent(
+    window.location.href = `${Url}/auth/google?redirect_uri=${encodeURIComponent(
       redirectUri
     )}`
   }, [])
+
+  /*azure/auth/callback */
 
   const logout = useCallback(() => {
     localStorage.removeItem("token")
