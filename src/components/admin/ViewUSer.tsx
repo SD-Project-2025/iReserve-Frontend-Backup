@@ -114,7 +114,7 @@ const ViewUser: React.FC = () => {
   });
 
   React.useEffect(() => {
-    if (location.state?.userData) {
+    if (location.state?.userData) { //Should get notification preferences from the backend
       // Use the passed user data if available
       setUser(location.state.userData)
       setLoading(false)
@@ -189,7 +189,8 @@ const ViewUser: React.FC = () => {
               </Typography>
             </Grid>
           </Grid>
-            <Button variant="contained" color="success" sx={{ mt: 2 }}>
+            <Button variant="contained" color="success" sx={{ mt: 2 }} onClick={()=> navigate('/admin/createnotifications', { state: { userData: user } })}>
+              <BackIcon sx={{ mr: 1 }} />
             Message User
             </Button>
 

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import {
   Typography,
@@ -15,8 +14,19 @@ import {
   Divider,
   Alert,
   CircularProgress,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Switch,
 } from "@mui/material"
 import { useAuth } from "@/contexts/AuthContext"
+import {
+  Email as EmailIcon,
+  Notifications as NotificationsIcon,
+  NotificationsOff as NotificationsOffIcon
+} from "@mui/icons-material"
 
 const ProfilePage = () => {
   const { user, logout } = useAuth()
@@ -26,12 +36,27 @@ const ProfilePage = () => {
     phone: "",
     address: "",
   })
+  
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    method: "both", // "inApp", "email", or "both"
+    marketingEmails: true,
+    pushNotifications: true,
+    soundEnabled: true,
+  })
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleNotificationChange = (field: string, value: any) => {
+    setNotificationPrefs((prev) => ({
       ...prev,
       [field]: value,
     }))
@@ -45,16 +70,19 @@ const ProfilePage = () => {
       setError(null)
       setSuccess(null)
 
-      // In a real app, you would update the user profile
-      // await api.put("/users/profile", formData)
+      // In a real app, you would update both profile and notification prefs
+      // await Promise.all([
+      //   api.put("/users/profile", formData),
+      //   api.put("/users/notifications", notificationPrefs)
+      // ])
 
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      setSuccess("Profile updated successfully!")
+      setSuccess("Settings updated successfully!")
     } catch (err) {
-      console.error("Error updating profile:", err)
-      setError("Failed to update profile. Please try again later.")
+      console.error("Error updating settings:", err)
+      setError("Failed to update settings. Please try again later.")
     } finally {
       setLoading(false)
     }
@@ -145,6 +173,88 @@ const ProfilePage = () => {
                     />
                   </Grid>
                 </Grid>
+
+                <Divider sx={{ my: 4 }} />
+
+                {/* Notification Preferences Section */}
+                <Typography variant="h6" gutterBottom>
+                  Notification Preferences
+                </Typography>
+                
+                <FormControl component="fieldset" sx={{ mb: 3 }}>
+                  <FormLabel component="legend">Notification Method</FormLabel>
+                  <RadioGroup
+                    row
+                    value={notificationPrefs.method}
+                    onChange={(e) => handleNotificationChange("method", e.target.value)}
+                  >
+                    <FormControlLabel
+                      value="inApp"
+                      control={<Radio />}
+                      label="In-App Only"
+                    />
+                    <FormControlLabel
+                      value="email"
+                      control={<Radio />}
+                      label="Email Only"
+                    />
+                    <FormControlLabel
+                      value="both"
+                      control={<Radio />}
+                      label="Both"
+                    />
+                  </RadioGroup>
+                </FormControl>
+
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationPrefs.marketingEmails}
+                        onChange={(e) => handleNotificationChange("marketingEmails", e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <EmailIcon sx={{ mr: 1 }} />
+                        Receive marketing emails
+                      </Box>
+                    }
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationPrefs.pushNotifications}
+                        onChange={(e) => handleNotificationChange("pushNotifications", e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        {notificationPrefs.pushNotifications ? (
+                          <NotificationsIcon sx={{ mr: 1 }} />
+                        ) : (
+                          <NotificationsOffIcon sx={{ mr: 1 }} />
+                        )}
+                        Push notifications
+                      </Box>
+                    }
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={notificationPrefs.soundEnabled}
+                        onChange={(e) => handleNotificationChange("soundEnabled", e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="Notification sounds"
+                    disabled={!notificationPrefs.pushNotifications}
+                  />
+                </Box>
 
                 <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
                   <Button type="submit" variant="contained" disabled={loading}>

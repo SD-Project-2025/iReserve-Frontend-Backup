@@ -34,6 +34,7 @@ import ManageMaintenancePage from "./pages/admin/ManageMaintenancePage"
 import ManageUsersPage from "./pages/admin/ManageUsersPage"
 import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ViewUser from "./components/admin/ViewUSer"
+import CreateNotification from "./components/admin/CreateNotification"
 
 // Protected route component
 //@ts-ignore
@@ -115,6 +116,7 @@ function App() {
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/users/:id" element={<ViewUser />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
+        <Route path="/admin/createnotifications" element={<CreateNotification />} />
       </Route>
 
       {/* 404 Route */}
