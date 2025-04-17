@@ -234,9 +234,15 @@ const ManageUsersPage = () => {
       width: 250,
       renderCell: (params: GridRenderCellParams) => (
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button size="small" startIcon={<ViewIcon />} onClick={() => navigate(`/admin/users/${params.row.user_id}`)}>
-            View
-          </Button>
+          <Button
+          size="small"
+          startIcon={<ViewIcon />}
+          onClick={() => navigate(`/admin/users/${params.row.user_id}`, {
+            state: { userData: params.row }
+          })}
+        >
+          View
+        </Button>
           {params.row.status === "active" ? (
             <Button
               size="small"

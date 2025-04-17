@@ -33,6 +33,7 @@ import ManageEventsPage from "./pages/admin/ManageEventsPage"
 import ManageMaintenancePage from "./pages/admin/ManageMaintenancePage"
 import ManageUsersPage from "./pages/admin/ManageUsersPage"
 import SystemReportsPage from "./pages/admin/SystemReportsPage"
+import ViewUser from "./components/admin/ViewUSer"
 
 // Protected route component
 //@ts-ignore
@@ -112,6 +113,7 @@ function App() {
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
+        <Route path="/admin/users/:id" element={<ViewUser />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
       </Route>
 
