@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -37,21 +36,30 @@ import { api } from "@/services/api"
 
 interface Booking {
   booking_id: number
-  user: {
-    name: string
-    user_id: number
-  }
-  facility: {
-    name: string
-    facility_id: number
-  }
+  facility_id: number
+  resident_id: number
   date: string
   start_time: string
   end_time: string
+  status: string
   purpose: string
   attendees: number
-  status: string
   created_at: string
+  approved_by: number | null
+  approval_date: string | null
+  Facility: {
+    facility_id: number
+    name: string
+    type: string
+    location: string
+  }
+  Resident: {
+    resident_id: number
+  }
+  approver: {
+    staff_id: number
+    employee_id: string
+  } | null
 }
 
 const ManageBookingsPage = () => {
@@ -95,8 +103,8 @@ const ManageBookingsPage = () => {
     if (searchTerm) {
       result = result.filter(
         (booking) =>
-          booking.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          booking.facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          `Resident ${booking.Resident?.resident_id}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          booking.Facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           booking.purpose.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
@@ -108,7 +116,7 @@ const ManageBookingsPage = () => {
 
     // Filter by facility
     if (filterFacility !== "all") {
-      result = result.filter((booking) => booking.facility?.facility_id === Number(filterFacility))
+      result = result.filter((booking) => booking.Facility?.facility_id === Number(filterFacility))
     }
 
     setFilteredBookings(result)
@@ -163,85 +171,85 @@ const ManageBookingsPage = () => {
   }
 
   // Get unique facilities for filter
-  const facilities = [...new Set(bookings.map((booking) => booking.facility))]
-    .filter((facility): facility is NonNullable<typeof facility> => facility !== undefined)
+  const facilities = [...new Set(bookings.map((booking) => booking.Facility))]
+    .filter((facility): facility is NonNullable<typeof facility> => facility !== null)
     .sort((a, b) => a.name.localeCompare(b.name))
-//@ts-ignore
-    const columns: GridColDef[] = [
-      { field: "booking_id", headerName: "ID", width: 70 },
-      {
-        field: "user",
-        headerName: "User",
-        width: 150,
-        valueGetter: (params) => params.row.user?.name || "Unknown",
-      },
-      {
-        field: "facility",
-        headerName: "Facility",
-        width: 150,
-        valueGetter: (params) => params.row.facility?.name || "Unknown",
-      },
-      {
-        field: "date",
-        headerName: "Date",
-        width: 120,
-        valueGetter: (params) => new Date(params.row.date).toLocaleDateString(),
-      },
-      { field: "start_time", headerName: "Start", width: 80 },
-      { field: "end_time", headerName: "End", width: 80 },
-      { field: "purpose", headerName: "Purpose", width: 200 },
-      { field: "attendees", headerName: "Attendees", width: 100, type: "number" },
-      {
-        field: "status",
-        headerName: "Status",
-        width: 120,
-        renderCell: (params: GridRenderCellParams) => (
-          <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
-        ),
-      },
-      {
-        field: "created_at",
-        headerName: "Created",
-        width: 120,
-        valueGetter: (params) => new Date(params.row.created_at).toLocaleDateString(),
-      },
-      {
-        field: "actions",
-        headerName: "Actions",
-        width: 300, // Slightly increased to accommodate all buttons
-        renderCell: (params: GridRenderCellParams) => (
-          <Box sx={{ display: "flex", gap: 1 }}>
+
+  const columns: GridColDef[] = [
+    { field: "booking_id", headerName: "ID", width: 70 },
+    {
+      field: "user",
+      headerName: "User",
+      width: 150,
+      valueGetter: (params) => `Resident ${params.row.Resident?.resident_id}` || "Unknown",
+    },
+    {
+      field: "facility",
+      headerName: "Facility",
+      width: 150,
+      valueGetter: (params) => params.row.Facility?.name || "Unknown",
+    },
+    {
+      field: "date",
+      headerName: "Date",
+      width: 120,
+      valueGetter: (params) => new Date(params.row.date).toLocaleDateString(),
+    },
+    { field: "start_time", headerName: "Start", width: 80 },
+    { field: "end_time", headerName: "End", width: 80 },
+    { field: "purpose", headerName: "Purpose", width: 200 },
+    { field: "attendees", headerName: "Attendees", width: 100, type: "number" },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 120,
+      renderCell: (params: GridRenderCellParams) => (
+        <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
+      ),
+    },
+    {
+      field: "created_at",
+      headerName: "Created",
+      width: 120,
+      valueGetter: (params) => new Date(params.row.created_at).toLocaleDateString(),
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 300,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            size="small"
+            startIcon={<ViewIcon />}
+            onClick={() => navigate(`/admin/bookings/${params.row.booking_id}`)}
+          >
+            View
+          </Button>
+          {(params.row.status === "pending" || params.row.status === "rejected") && (
             <Button
               size="small"
-              startIcon={<ViewIcon />}
-              onClick={() => navigate(`/admin/bookings/${params.row.booking_id}`)}
+              color="success"
+              startIcon={<ApproveIcon />}
+              onClick={() => openDialog(params.row.booking_id, "approve")}
             >
-              View
+              Approve
             </Button>
-            {(params.row.status === "pending" || params.row.status === "rejected") && (
-              <Button
-                size="small"
-                color="success"
-                startIcon={<ApproveIcon />}
-                onClick={() => openDialog(params.row.booking_id, "approve")}
-              >
-                Approve
-              </Button>
-            )}
-            {(params.row.status === "pending" || params.row.status === "approved") && (
-              <Button
-                size="small"
-                color="error"
-                startIcon={<RejectIcon />}
-                onClick={() => openDialog(params.row.booking_id, "reject")}
-              >
-                Reject
-              </Button>
-            )}
-          </Box>
-        ),
-      },,
-    ]
+          )}
+          {(params.row.status === "pending" || params.row.status === "approved") && (
+            <Button
+              size="small"
+              color="error"
+              startIcon={<RejectIcon />}
+              onClick={() => openDialog(params.row.booking_id, "reject")}
+            >
+              Reject
+            </Button>
+          )}
+        </Box>
+      ),
+    },
+  ]
 
   return (
     <section>
