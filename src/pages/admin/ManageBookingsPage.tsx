@@ -166,60 +166,59 @@ const ManageBookingsPage = () => {
   const facilities = [...new Set(bookings.map((booking) => booking.facility))]
     .filter((facility): facility is NonNullable<typeof facility> => facility !== undefined)
     .sort((a, b) => a.name.localeCompare(b.name))
-
-  const columns: GridColDef[] = [
-    { field: "booking_id", headerName: "ID", width: 70 },
-    {
-      field: "user",
-      headerName: "User",
-      width: 150,
-      valueGetter: (params) => params.row.user?.name || "Unknown",
-    },
-    {
-      field: "facility",
-      headerName: "Facility",
-      width: 150,
-      valueGetter: (params) => params.row.facility?.name || "Unknown",
-    },
-    {
-      field: "date",
-      headerName: "Date",
-      width: 120,
-      valueGetter: (params) => new Date(params.row.date).toLocaleDateString(),
-    },
-    { field: "start_time", headerName: "Start", width: 80 },
-    { field: "end_time", headerName: "End", width: 80 },
-    { field: "purpose", headerName: "Purpose", width: 200 },
-    { field: "attendees", headerName: "Attendees", width: 100, type: "number" },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
-      ),
-    },
-    {
-      field: "created_at",
-      headerName: "Created",
-      width: 120,
-      valueGetter: (params) => new Date(params.row.created_at).toLocaleDateString(),
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 250,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            size="small"
-            startIcon={<ViewIcon />}
-            onClick={() => navigate(`/admin/bookings/${params.row.booking_id}`)}
-          >
-            View
-          </Button>
-          {params.row.status === "pending" && (
-            <>
+//@ts-ignore
+    const columns: GridColDef[] = [
+      { field: "booking_id", headerName: "ID", width: 70 },
+      {
+        field: "user",
+        headerName: "User",
+        width: 150,
+        valueGetter: (params) => params.row.user?.name || "Unknown",
+      },
+      {
+        field: "facility",
+        headerName: "Facility",
+        width: 150,
+        valueGetter: (params) => params.row.facility?.name || "Unknown",
+      },
+      {
+        field: "date",
+        headerName: "Date",
+        width: 120,
+        valueGetter: (params) => new Date(params.row.date).toLocaleDateString(),
+      },
+      { field: "start_time", headerName: "Start", width: 80 },
+      { field: "end_time", headerName: "End", width: 80 },
+      { field: "purpose", headerName: "Purpose", width: 200 },
+      { field: "attendees", headerName: "Attendees", width: 100, type: "number" },
+      {
+        field: "status",
+        headerName: "Status",
+        width: 120,
+        renderCell: (params: GridRenderCellParams) => (
+          <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
+        ),
+      },
+      {
+        field: "created_at",
+        headerName: "Created",
+        width: 120,
+        valueGetter: (params) => new Date(params.row.created_at).toLocaleDateString(),
+      },
+      {
+        field: "actions",
+        headerName: "Actions",
+        width: 300, // Slightly increased to accommodate all buttons
+        renderCell: (params: GridRenderCellParams) => (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              size="small"
+              startIcon={<ViewIcon />}
+              onClick={() => navigate(`/admin/bookings/${params.row.booking_id}`)}
+            >
+              View
+            </Button>
+            {(params.row.status === "pending" || params.row.status === "rejected") && (
               <Button
                 size="small"
                 color="success"
@@ -228,6 +227,8 @@ const ManageBookingsPage = () => {
               >
                 Approve
               </Button>
+            )}
+            {(params.row.status === "pending" || params.row.status === "approved") && (
               <Button
                 size="small"
                 color="error"
@@ -236,12 +237,11 @@ const ManageBookingsPage = () => {
               >
                 Reject
               </Button>
-            </>
-          )}
-        </Box>
-      ),
-    },
-  ]
+            )}
+          </Box>
+        ),
+      },,
+    ]
 
   return (
     <section>
