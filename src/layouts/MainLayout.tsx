@@ -39,6 +39,7 @@ import {
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
   ChevronLeft as ChevronLeftIcon,
+  Email as EmailIcon,
 } from "@mui/icons-material"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
@@ -99,9 +100,11 @@ const MainLayout = () => {
     { text: "Manage Facilities", icon: <SportsIcon />, path: "/admin/facilities" },
     { text: "Manage Bookings", icon: <BookingIcon />, path: "/admin/bookings" },
     { text: "Manage Events", icon: <EventIcon />, path: "/admin/events" },
+    {text: "Emails Users", icon: <EmailIcon/>,path: "/admin/emaiUser"},
     { text: "Manage Maintenance", icon: <MaintenanceIcon />, path: "/admin/maintenance" },
     { text: "Manage Users", icon: <PersonIcon />, path: "/admin/users" },
     { text: "System Reports", icon: <ReportIcon />, path: "/admin/reports" },
+
   ]
 
   const drawer = (
