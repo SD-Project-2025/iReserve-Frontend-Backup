@@ -30,7 +30,6 @@ import {
   AccessTime as TimeIcon,
   CalendarMonth as CalendarIcon,
   LocationOn as LocationIcon,
-  Group as GroupIcon,
   Info as InfoIcon,
   Event as EventIcon,
 } from "@mui/icons-material"
