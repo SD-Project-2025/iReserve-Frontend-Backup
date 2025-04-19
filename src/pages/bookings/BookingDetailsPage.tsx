@@ -59,12 +59,18 @@ const BookingDetailsPage = () => {
       try {
         setLoading(true)
         setError(null)
+        console.log("Booking ID from route:", id)
 
         const response = await api.get(`/bookings/${id}`)
+        console.log("Fetched booking data:", response.data)
         setBooking(response.data.data)
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching booking details:", err)
-        setError("Failed to load booking details. Please try again later.")
+        if (err.response) {
+          setError(`Error ${err.response.status}: ${err.response.data?.message || "Failed to fetch booking."}`)
+        } else {
+          setError("Failed to load booking details. Please check your connection and try again.")
+        }
       } finally {
         setLoading(false)
       }
@@ -72,6 +78,8 @@ const BookingDetailsPage = () => {
 
     if (id) {
       fetchBookingDetails()
+    } else {
+      setError("No booking ID provided.")
     }
   }, [id])
 
@@ -79,13 +87,16 @@ const BookingDetailsPage = () => {
     try {
       setCancelling(true)
       await api.put(`/bookings/${id}/cancel`)
-      // Refresh booking details
-      const response = await api.get(`/bookings/${id}`)
-      setBooking(response.data.data)
+      const refreshed = await api.get(`/bookings/${id}`)
+      setBooking(refreshed.data.data)
       setCancelDialogOpen(false)
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error cancelling booking:", err)
-      setError("Failed to cancel booking. Please try again later.")
+      if (err.response) {
+        setError(`Error ${err.response.status}: ${err.response.data?.message || "Failed to cancel booking."}`)
+      } else {
+        setError("Failed to cancel booking. Please try again later.")
+      }
     } finally {
       setCancelling(false)
     }

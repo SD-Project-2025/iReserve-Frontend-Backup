@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -37,21 +36,30 @@ import { api } from "@/services/api"
 
 interface Booking {
   booking_id: number
-  user: {
-    name: string
-    user_id: number
-  }
-  facility: {
-    name: string
-    facility_id: number
-  }
+  facility_id: number
+  resident_id: number
   date: string
   start_time: string
   end_time: string
+  status: string
   purpose: string
   attendees: number
-  status: string
   created_at: string
+  approved_by: number | null
+  approval_date: string | null
+  Facility: {
+    facility_id: number
+    name: string
+    type: string
+    location: string
+  }
+  Resident: {
+    resident_id: number
+  }
+  approver: {
+    staff_id: number
+    employee_id: string
+  } | null
 }
 
 const ManageBookingsPage = () => {
@@ -95,8 +103,8 @@ const ManageBookingsPage = () => {
     if (searchTerm) {
       result = result.filter(
         (booking) =>
-          booking.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          booking.facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          `Resident ${booking.Resident?.resident_id}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          booking.Facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           booking.purpose.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
@@ -108,7 +116,7 @@ const ManageBookingsPage = () => {
 
     // Filter by facility
     if (filterFacility !== "all") {
-      result = result.filter((booking) => booking.facility?.facility_id === Number(filterFacility))
+      result = result.filter((booking) => booking.Facility?.facility_id === Number(filterFacility))
     }
 
     setFilteredBookings(result)
@@ -163,8 +171,8 @@ const ManageBookingsPage = () => {
   }
 
   // Get unique facilities for filter
-  const facilities = [...new Set(bookings.map((booking) => booking.facility))]
-    .filter((facility): facility is NonNullable<typeof facility> => facility !== undefined)
+  const facilities = [...new Set(bookings.map((booking) => booking.Facility))]
+    .filter((facility): facility is NonNullable<typeof facility> => facility !== null)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const columns: GridColDef[] = [
@@ -173,13 +181,13 @@ const ManageBookingsPage = () => {
       field: "user",
       headerName: "User",
       width: 150,
-      valueGetter: (params) => params.row.user?.name || "Unknown",
+      valueGetter: (params) => `Resident ${params.row.Resident?.resident_id}` || "Unknown",
     },
     {
       field: "facility",
       headerName: "Facility",
       width: 150,
-      valueGetter: (params) => params.row.facility?.name || "Unknown",
+      valueGetter: (params) => params.row.Facility?.name || "Unknown",
     },
     {
       field: "date",
@@ -208,7 +216,7 @@ const ManageBookingsPage = () => {
     {
       field: "actions",
       headerName: "Actions",
-      width: 250,
+      width: 300,
       renderCell: (params: GridRenderCellParams) => (
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
@@ -218,25 +226,25 @@ const ManageBookingsPage = () => {
           >
             View
           </Button>
-          {params.row.status === "pending" && (
-            <>
-              <Button
-                size="small"
-                color="success"
-                startIcon={<ApproveIcon />}
-                onClick={() => openDialog(params.row.booking_id, "approve")}
-              >
-                Approve
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                startIcon={<RejectIcon />}
-                onClick={() => openDialog(params.row.booking_id, "reject")}
-              >
-                Reject
-              </Button>
-            </>
+          {(params.row.status === "pending" || params.row.status === "rejected") && (
+            <Button
+              size="small"
+              color="success"
+              startIcon={<ApproveIcon />}
+              onClick={() => openDialog(params.row.booking_id, "approve")}
+            >
+              Approve
+            </Button>
+          )}
+          {(params.row.status === "pending" || params.row.status === "approved") && (
+            <Button
+              size="small"
+              color="error"
+              startIcon={<RejectIcon />}
+              onClick={() => openDialog(params.row.booking_id, "reject")}
+            >
+              Reject
+            </Button>
           )}
         </Box>
       ),

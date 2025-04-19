@@ -30,7 +30,6 @@ import {
   AccessTime as TimeIcon,
   CalendarMonth as CalendarIcon,
   LocationOn as LocationIcon,
-  Group as GroupIcon,
   Info as InfoIcon,
   Event as EventIcon,
 } from "@mui/icons-material"
@@ -86,19 +85,41 @@ const FacilityDetailsPage = () => {
         setLoading(true)
         setError(null)
 
+        // Fetch facility data
         const facilityResponse = await api.get(`/facilities/${id}`)
-        setFacility(facilityResponse.data.data)
+        
+        if (!facilityResponse.data?.success) {
+          throw new Error(facilityResponse.data?.message || "Failed to fetch facility")
+        }
 
-        // Fetch upcoming bookings for this facility
-        const bookingsResponse = await api.get(`/facilities/${id}/bookings`)
-        setBookings(bookingsResponse.data.data || [])
+        const facilityData = facilityResponse.data.data
+        if (!facilityData) {
+          throw new Error("Facility data not found")
+        }
 
-        // Fetch upcoming events for this facility
-        const eventsResponse = await api.get(`/facilities/${id}/events`)
-        setEvents(eventsResponse.data.data || [])
-      } catch (err) {
+        setFacility(facilityData)
+
+        // Fetch bookings data
+        try {
+          const bookingsResponse = await api.get(`/facilities/${id}/bookings`)
+          setBookings(bookingsResponse.data?.data || [])
+        } catch (bookingsError) {
+          console.warn("Failed to fetch bookings:", bookingsError)
+          setBookings([])
+        }
+
+        // Fetch events data
+        try {
+          const eventsResponse = await api.get(`/facilities/${id}/events`)
+          setEvents(eventsResponse.data?.data || [])
+        } catch (eventsError) {
+          console.warn("Failed to fetch events:", eventsError)
+          setEvents([])
+        }
+
+      } catch (err: any) {
         console.error("Error fetching facility details:", err)
-        setError("Failed to load facility details. Please try again later.")
+        setError(err.response?.data?.message || err.message || "Failed to load facility details. Please try again later.")
       } finally {
         setLoading(false)
       }
@@ -106,6 +127,9 @@ const FacilityDetailsPage = () => {
 
     if (id) {
       fetchFacilityDetails()
+    } else {
+      setError("Facility ID is missing")
+      setLoading(false)
     }
   }, [id])
 
@@ -136,25 +160,38 @@ const FacilityDetailsPage = () => {
   }
 
   const handleBookFacility = () => {
-    if (facility?.status !== "open") {
+    if (!facility) return
+
+    if (facility.status !== "open") {
       setError("This facility is not available for booking at the moment.")
       return
     }
 
     if (user?.type === "resident") {
-      navigate("/bookings/create", { state: { facilityId: facility?.facility_id } })
+      navigate("/bookings/create", { state: { facilityId: facility.facility_id } })
     } else {
       setBookingDialogOpen(true)
     }
   }
 
   const handleReportIssue = () => {
-    navigate("/maintenance/create", { state: { facilityId: facility?.facility_id } })
+    if (!facility) return
+    navigate("/maintenance/create", { state: { facilityId: facility.facility_id } })
+  }
+
+  const handleRetry = () => {
+    setError(null)
+    if (id) {
+      setLoading(true)
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+    }
   }
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <CircularProgress />
       </Box>
     )
@@ -162,26 +199,39 @@ const FacilityDetailsPage = () => {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 3 }}>
-        {error}
-      </Alert>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={handleRetry}>
+          Retry
+        </Button>
+      </Box>
     )
   }
 
   if (!facility) {
-    return <Alert severity="info">Facility not found.</Alert>
+    return (
+      <Alert severity="info" sx={{ m: 3 }}>
+        Facility not found.
+      </Alert>
+    )
   }
 
   return (
-    <section>
+    <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           {facility.name}
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <Chip label={facility.status} color={getStatusColor(facility.status) as any} sx={{ mr: 2 }} />
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Chip 
+            label={facility.status} 
+            color={getStatusColor(facility.status) as any} 
+            sx={{ textTransform: 'capitalize' }} 
+          />
           <Typography variant="subtitle1" color="text.secondary">
-            {facility.type} • {facility.is_indoor ? "Indoor" : "Outdoor"}
+            {facility.type} • {facility.is_indoor ? "Indoor" : "Outdoor"} • Capacity: {facility.capacity}
           </Typography>
         </Box>
       </Box>
@@ -190,7 +240,7 @@ const FacilityDetailsPage = () => {
         <Grid item xs={12} md={8}>
           <Box
             component="img"
-            src={facility.image_url || "/placeholder.svg?height=400&width=800&text=" + facility.name}
+            src={facility.image_url || "/placeholder-facility.jpg"}
             alt={facility.name}
             sx={{
               width: "100%",
@@ -198,17 +248,43 @@ const FacilityDetailsPage = () => {
               objectFit: "cover",
               borderRadius: 2,
               mb: 3,
+              backgroundColor: '#f5f5f5'
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.src = "/placeholder-facility.jpg"
             }}
           />
 
-          <Typography variant="h5" component="h2" gutterBottom>
-            About this facility
-          </Typography>
-          <Typography paragraph>{facility.description}</Typography>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h5" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <InfoIcon color="primary" sx={{ mr: 1 }} />
+                About this facility
+              </Typography>
+              <Typography paragraph>{facility.description}</Typography>
+
+              <Grid container spacing={2} sx={{ mt: 2 }}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LocationIcon color="action" sx={{ mr: 1 }} />
+                    {facility.location}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TimeIcon color="action" sx={{ mr: 1 }} />
+                    {facility.open_time} - {facility.close_time}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
 
           <Divider sx={{ my: 3 }} />
 
-          <Typography variant="h5" component="h2" gutterBottom>
+          <Typography variant="h5" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <CalendarIcon color="primary" sx={{ mr: 1 }} />
             Upcoming Bookings
           </Typography>
 
@@ -230,7 +306,12 @@ const FacilityDetailsPage = () => {
                         {booking.start_time} - {booking.end_time}
                       </TableCell>
                       <TableCell>
-                        <Chip label={booking.status} size="small" color={getStatusColor(booking.status) as any} />
+                        <Chip 
+                          label={booking.status} 
+                          size="small" 
+                          color={getStatusColor(booking.status) as any} 
+                          sx={{ textTransform: 'capitalize' }}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -238,12 +319,15 @@ const FacilityDetailsPage = () => {
               </Table>
             </TableContainer>
           ) : (
-            <Typography sx={{ mb: 3 }}>No upcoming bookings for this facility.</Typography>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              No upcoming bookings for this facility.
+            </Alert>
           )}
 
           <Divider sx={{ my: 3 }} />
 
-          <Typography variant="h5" component="h2" gutterBottom>
+          <Typography variant="h5" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <EventIcon color="primary" sx={{ mr: 1 }} />
             Upcoming Events
           </Typography>
 
@@ -271,10 +355,19 @@ const FacilityDetailsPage = () => {
                         {event.start_time} - {event.end_time}
                       </TableCell>
                       <TableCell>
-                        <Chip label={event.status} size="small" color={getStatusColor(event.status) as any} />
+                        <Chip 
+                          label={event.status} 
+                          size="small" 
+                          color={getStatusColor(event.status) as any} 
+                          sx={{ textTransform: 'capitalize' }}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Button size="small" variant="outlined" onClick={() => navigate(`/events/${event.event_id}`)}>
+                        <Button 
+                          size="small" 
+                          variant="outlined" 
+                          onClick={() => navigate(`/events/${event.event_id}`)}
+                        >
                           View
                         </Button>
                       </TableCell>
@@ -284,15 +377,18 @@ const FacilityDetailsPage = () => {
               </Table>
             </TableContainer>
           ) : (
-            <Typography>No upcoming events for this facility.</Typography>
+            <Alert severity="info">
+              No upcoming events for this facility.
+            </Alert>
           )}
 
-          <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
+          <Box sx={{ display: "flex", gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
               startIcon={<CalendarIcon />}
               onClick={handleBookFacility}
               disabled={facility.status !== "open"}
+              sx={{ minWidth: 200 }}
             >
               Book this Facility
             </Button>
@@ -300,113 +396,79 @@ const FacilityDetailsPage = () => {
               variant="outlined"
               startIcon={<EventIcon />}
               onClick={() => navigate("/events", { state: { facilityFilter: facility.facility_id } })}
+              sx={{ minWidth: 200 }}
             >
               View All Events
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<InfoIcon />}
+              onClick={handleReportIssue}
+              sx={{ minWidth: 200 }}
+            >
+              Report Issue
             </Button>
           </Box>
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Typography variant="h6" component="h3" gutterBottom>
+              <Typography variant="h6" gutterBottom>
                 Facility Details
               </Typography>
-
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <LocationIcon color="action" sx={{ mr: 1 }} />
-                <Typography>{facility.location}</Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <TimeIcon color="action" sx={{ mr: 1 }} />
+              <Divider sx={{ mb: 2 }} />
+              <Box sx={{ '& > *': { mb: 1.5 } }}>
                 <Typography>
-                  {facility.open_time} - {facility.close_time}
+                  <strong>Type:</strong> {facility.type}
                 </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <GroupIcon color="action" sx={{ mr: 1 }} />
-                <Typography>Capacity: {facility.capacity} people</Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <InfoIcon color="action" sx={{ mr: 1 }} />
-                <Typography>{facility.is_indoor ? "Indoor facility" : "Outdoor facility"}</Typography>
+                <Typography>
+                  <strong>Location:</strong> {facility.location}
+                </Typography>
+                <Typography>
+                  <strong>Capacity:</strong> {facility.capacity}
+                </Typography>
+                <Typography>
+                  <strong>Environment:</strong> {facility.is_indoor ? "Indoor" : "Outdoor"}
+                </Typography>
+                <Typography>
+                  <strong>Operating Hours:</strong> {facility.open_time} - {facility.close_time}
+                </Typography>
+                <Typography sx={{ display: 'flex', alignItems: 'center' }}>
+                  <strong>Current Status:</strong> 
+                  <Chip 
+                    label={facility.status} 
+                    size="small" 
+                    color={getStatusColor(facility.status) as any} 
+                    sx={{ ml: 1, textTransform: 'capitalize' }}
+                  />
+                </Typography>
               </Box>
             </CardContent>
           </Card>
-
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" component="h3" gutterBottom>
-                Need Help?
-              </Typography>
-              <Typography paragraph>
-                If you have any questions about this facility or need to report an issue, please contact our staff.
-              </Typography>
-              <Button variant="outlined" fullWidth onClick={handleReportIssue}>
-                Report an Issue
-              </Button>
-            </CardContent>
-          </Card>
-
-          {user?.type === "staff" && (
-            <Card sx={{ mt: 3 }}>
-              <CardContent>
-                <Typography variant="h6" component="h3" gutterBottom>
-                  Staff Actions
-                </Typography>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Button variant="outlined" onClick={() => navigate(`/admin/facilities/${facility.facility_id}/edit`)}>
-                    Edit Facility
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color={facility.status === "open" ? "error" : "success"}
-                    onClick={() => {
-                      // In a real app, this would update the facility status
-                      alert(`Facility status would be changed to ${facility.status === "open" ? "closed" : "open"}`)
-                    }}
-                  >
-                    {facility.status === "open" ? "Close Facility" : "Open Facility"}
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          )}
         </Grid>
       </Grid>
 
-      {/* Staff booking dialog */}
       <Dialog open={bookingDialogOpen} onClose={() => setBookingDialogOpen(false)}>
-        <DialogTitle>Staff Booking</DialogTitle>
+        <DialogTitle>Restricted Access</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            As a staff member, you can create bookings on behalf of residents. Would you like to:
+            Only residents are allowed to book this facility. Please log in as a resident to proceed with the booking.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setBookingDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={() => {
-              setBookingDialogOpen(false)
-              navigate("/bookings/create", { state: { facilityId: facility?.facility_id } })
-            }}
+          <Button onClick={() => setBookingDialogOpen(false)}>Close</Button>
+          <Button 
+            onClick={() => navigate("/login", { state: { from: `/facilities/${id}` } })} 
+            color="primary"
+            variant="contained"
           >
-            Create My Booking
-          </Button>
-          <Button
-            onClick={() => {
-              setBookingDialogOpen(false)
-              navigate("/admin/bookings/create", { state: { facilityId: facility?.facility_id } })
-            }}
-          >
-            Create for Resident
+            Go to Login
           </Button>
         </DialogActions>
       </Dialog>
-    </section>
+    </Box>
   )
 }
 
