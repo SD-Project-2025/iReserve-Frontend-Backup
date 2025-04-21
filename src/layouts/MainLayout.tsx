@@ -38,7 +38,7 @@ import {
   Assessment as ReportIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
-  ChevronLeft as ChevronLeftIcon,
+
   Email as EmailIcon,
 } from "@mui/icons-material"
 import { useAuth } from "@/contexts/AuthContext"

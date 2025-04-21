@@ -119,6 +119,7 @@ function App() {
         <Route path="/admin/bookings" element={<ManageBookingsPage />} />
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
+        <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
         <Route path ="/admin/emaiUser" element={<ManageNotifications/>}/>

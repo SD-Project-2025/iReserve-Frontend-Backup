@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Box, Typography, Button, useMediaQuery, useTheme as useMuiTheme, CircularProgress, Container } from "@mui/material"
 import { useNavigate } from "react-router-dom"
 import { useTheme } from "@/contexts/ThemeContext"
@@ -8,7 +8,8 @@ import LightModeIcon from "@mui/icons-material/LightMode"
 import DarkModeIcon from "@mui/icons-material/DarkMode"
 import { motion, useScroll, useTransform, useInView } from "framer-motion"
 import { Parallax } from "react-parallax"
-
+//import { is } from "date-fns/locale"
+useScroll;useTransform;
 // Video and image URLs from Vercel Blob storage
 const mediaAssets = {
   droneVideo: "https://pcgyhzbplxptutua.public.blob.vercel-storage.com/drone-bg-PbQBL5xKwWRW6JKLqwtr8VqqUJG4eC.mp4",
@@ -28,8 +29,8 @@ const LandingPage = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const featuresRef = useRef(null)
   const isInView = useInView(featuresRef, { once: true, margin: "-100px" }) // Added margin to trigger animation earlier
-  const { scrollYProgress } = useScroll()
-  const y = useTransform(scrollYProgress, [0, 1], [0, -200])
+  //const { scrollYProgress } = useScroll()
+ // const y = useTransform(scrollYProgress, [0, 1], [0, -200])
 
   useEffect(() => {
     const token = localStorage.getItem('authToken')
@@ -38,7 +39,7 @@ const LandingPage = () => {
     } else {
       setCheckingAuth(false)
     }
-
+isScrolled;isInView;
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
     }
