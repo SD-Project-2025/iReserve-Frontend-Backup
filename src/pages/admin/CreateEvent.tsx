@@ -428,14 +428,19 @@ const CreateEventPage = () => {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Fee ($)"
-                      type="number"
-                      value={formData.fee}
-                      onChange={(e) => handleChange("fee", e.target.value)}
-                    />
-                  </Grid>
+                  <TextField
+                    fullWidth
+                    label="Fee (R)"
+                    type="number"
+                    placeholder="Enter amount in ZAR"
+                    value={formData.fee}
+                    onChange={(e) => handleChange("fee", e.target.value)}
+                    InputProps={{
+                      startAdornment: <span style={{ marginRight: 4 }}>R</span>,
+                    }}
+                  />
+                </Grid>
+
                 </Grid>
               )}
 
