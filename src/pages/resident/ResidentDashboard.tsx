@@ -117,8 +117,51 @@ interface Booking {
   attendees: number
 }
 
-// Enhanced WeatherCard component with improved styling and icons
-const WeatherCard = ({ facility, weather }: { facility: Facility; weather: WeatherData }) => {
+interface ForecastData {
+  dt: number;
+  main: {
+    temp: number;
+    feels_like: number;
+    humidity: number;
+    pressure: number;
+  };
+  wind: {
+    speed: number;
+  };
+  weather: [{
+    id: number;
+    main: string;
+    description: string;
+    icon: string;
+  }];
+  dt_txt: string;
+}
+
+interface Forecast {
+  daily: {
+    date: string;
+    temp: number;
+    description: string;
+    icon: string;
+    humidity?: number;
+    windSpeed?: number;
+  }[];
+  alert?: string;
+  temperatureRange?: {
+    min: number;
+    max: number;
+  };
+}
+
+// Enhanced WeatherCard component with forecast support
+const WeatherCard = ({ facility, weather, forecast }: { 
+  facility: Facility; 
+  weather: WeatherData;
+  forecast?: Forecast;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const [showTab, setShowTab] = useState<'forecast' | 'details'>('forecast');
+  
   const getWeatherIcon = (iconCode: string) => {
     switch (iconCode) {
       case '01d':
@@ -158,12 +201,12 @@ const WeatherCard = ({ facility, weather }: { facility: Facility; weather: Weath
         flexDirection: 'column',
         transition: 'transform 0.2s ease-in-out',
         '&:hover': {
-          transform: 'translateY(-4px)',
+          transform: expanded ? 'none' : 'translateY(-4px)',
         },
         bgcolor: facility.is_indoor ? 'background.default' : 'background.paper',
       }}
     >
-      <CardContent sx={{ flexGrow: 1 }}>
+      <CardContent sx={{ flexGrow: 1, pb: expanded ? 0 : undefined }}>
         <Box sx={{ mb: 2 }}>
           <Typography variant="h6" gutterBottom sx={{ 
             color: 'primary.main',
@@ -192,6 +235,7 @@ const WeatherCard = ({ facility, weather }: { facility: Facility; weather: Weath
           {getWeatherIcon(weather.weatherIcon)}
         </Box>
 
+        {/* Status Chips */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -229,7 +273,152 @@ const WeatherCard = ({ facility, weather }: { facility: Facility; weather: Weath
               }}
             />
           )}
+          
+          {forecast?.alert && (
+            <Chip
+              icon={<NotificationIcon />}
+              label={forecast.alert}
+              sx={{ 
+                bgcolor: 'warning.light',
+                color: 'warning.contrastText'
+              }}
+            />
+          )}
         </Box>
+        
+        {/* Toggle button for expanded view */}
+        <Button 
+          fullWidth 
+          sx={{ mt: 2 }} 
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Show Less" : "Show More Details"}
+        </Button>
+        
+        {/* Extended content */}
+        {expanded && (
+          <Box sx={{ mt: 2 }}>
+            {/* Tab selection */}
+            <Box sx={{ 
+              display: 'flex', 
+              borderBottom: 1, 
+              borderColor: 'divider',
+              mb: 2
+            }}>
+              <Button 
+                variant={showTab === 'forecast' ? 'contained' : 'text'} 
+                onClick={() => setShowTab('forecast')}
+                size="small"
+                sx={{ mr: 1 }}
+              >
+                5-Day Forecast
+              </Button>
+              <Button 
+                variant={showTab === 'details' ? 'contained' : 'text'} 
+                onClick={() => setShowTab('details')}
+                size="small"
+              >
+                Weather Details
+              </Button>
+            </Box>
+            
+            {/* Forecast content */}
+            {showTab === 'forecast' && forecast && (
+              <Box sx={{ mt: 2 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 1, 
+                  overflowX: 'auto',
+                  pb: 1
+                }}>
+                  {forecast.daily.map((day, index) => {
+                    // Better date formatting
+                    const date = new Date(day.date);
+                    const dayName = index === 0 
+                      ? 'Today' 
+                      : index === 1 
+                        ? 'Tomorrow' 
+                        : new Date(day.date).toLocaleDateString(undefined, { weekday: 'short' });
+                        
+                    return (
+                      <Box
+                        key={day.date}
+                        sx={{
+                          minWidth: 80,
+                          p: 1,
+                          textAlign: 'center',
+                          borderRadius: 1,
+                          bgcolor: 'background.paper',
+                          boxShadow: 1,
+                          transition: 'transform 0.2s',
+                          '&:hover': {
+                            transform: 'scale(1.05)',
+                            boxShadow: 2
+                          }
+                        }}
+                      >
+                        <Typography variant="caption" display="block">
+                          {dayName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                          {date.getDate()}/{date.getMonth() + 1}
+                        </Typography>
+                        {getWeatherIcon(day.icon)}
+                        <Typography variant="body2" fontWeight="bold">
+                          {day.temp}°C
+                        </Typography>
+                        <Typography variant="caption" display="block" sx={{ textTransform: 'capitalize' }}>
+                          {day.description}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+                
+                {forecast.temperatureRange && (
+                  <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Typography variant="body2">
+                      Temperature range: {forecast.temperatureRange.min}°C - {forecast.temperatureRange.max}°C
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+            
+            {/* Weather details content */}
+            {showTab === 'details' && forecast && forecast.daily.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>Today's Weather Details:</Typography>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 2
+                }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Humidity</Typography>
+                    <Typography variant="body2">{forecast.daily[0].humidity || 'N/A'}%</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Wind Speed</Typography>
+                    <Typography variant="body2">{forecast.daily[0].windSpeed || 'N/A'} km/h</Typography>
+                  </Box>
+                </Box>
+                
+                {facility.is_indoor ? (
+                  <Alert severity="success" sx={{ mt: 2, fontSize: '0.8rem' }}>
+                    This is an indoor facility, so weather conditions won't affect your activities.
+                  </Alert>
+                ) : (
+                  <Alert severity="info" sx={{ mt: 2, fontSize: '0.8rem' }}>
+                    {weather.hasAlert ? 
+                      "Be prepared for adverse weather conditions at this outdoor facility." : 
+                      "Weather looks suitable for outdoor activities at this facility."}
+                  </Alert>
+                )}
+              </Box>
+            )}
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
@@ -254,59 +443,122 @@ const ResidentDashboard = () => {
   const [weatherError, setWeatherError] = useState<string | null>(null)
   // Store weather data mapped by standard location
   const [weatherMapping, setWeatherMapping] = useState<{ [key: string]: WeatherData }>({});
+  const [forecast,setForecast] = useState<{[key:string]:Forecast}>({})
 
-  // Updated fetchWeatherData with logging; returns a mapping from location to weather data
-  const fetchWeatherData = async (locations: string[]) => {
-    setLoading(prev => ({ ...prev, weather: true }))
-    setWeatherError(null)
+  // Replace the existing fetchWeatherData function with this one
+  const fetchWeatherAndForecast = async (locations: string[]) => {
+    setLoading(prev => ({ ...prev, weather: true }));
+    setWeatherError(null);
     
     try {
-      const weatherPromises = locations.map(async (location) => {
+      const promises = locations.map(async (location) => {
         const standardLocation = mapCustomLocationToStandard(location);
-        console.log("Attempting to fetch weather for:", standardLocation);
+        console.log("Fetching weather and forecast for:", standardLocation);
+        
         try {
-          const response = await fetch(
-            `${OPENWEATHER_BASE_URL}/weather?q=${encodeURIComponent(standardLocation)}&appid=${OPENWEATHER_API_KEY}&units=metric`
-          );
-          console.log("API Response:", response);
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("API Error Details:", errorData);
-            throw new Error(`HTTP error! status: ${response.status}`);
+          // Fetch current weather and forecast in parallel
+          const [weatherResponse, forecastResponse] = await Promise.all([
+            fetch(
+              `${OPENWEATHER_BASE_URL}/weather?q=${encodeURIComponent(standardLocation)}&appid=${OPENWEATHER_API_KEY}&units=metric`
+            ),
+            fetch(
+              `${OPENWEATHER_BASE_URL}/forecast?q=${encodeURIComponent(standardLocation)}&appid=${OPENWEATHER_API_KEY}&units=metric`
+            )
+          ]);
+
+          if (!weatherResponse.ok || !forecastResponse.ok) {
+            throw new Error('API request failed');
           }
-  
-          const data = await response.json();
-          console.log("API Success Data:", data);
-          const hasAlert = data.weather.some((condition: any) => condition.id < 700);
-  
+
+          const [weatherData, forecastData] = await Promise.all([
+            weatherResponse.json(),
+            forecastResponse.json()
+          ]);
+
+          console.log("Weather data:", weatherData);
+          console.log("Forecast data:", forecastData);
+
+          // Process forecast data to get daily forecasts
+          const processedForecasts = forecastData.list.reduce((days: any[], item: ForecastData) => {
+            const date = item.dt_txt.split(' ')[0];
+            if (!days.find((day: any) => day.date === date)) {
+              days.push({
+                date,
+                temp: Math.round(item.main.temp),
+                description: item.weather[0].description,
+                icon: item.weather[0].icon,
+                humidity: item.main.humidity,
+                windSpeed: Math.round(item.wind.speed * 3.6) // Convert m/s to km/h
+              });
+            }
+            return days;
+          }, []).slice(0, 5); // Get next 5 days
+
+          // Calculate temperature range
+          const temps = processedForecasts.map((day: { temp: any }) => day.temp);
+          const temperatureRange = {
+            min: Math.min(...temps),
+            max: Math.max(...temps)
+          };
+
+          // Fix: Check if there's any severe weather in the forecast - this is trying to parse the icon as a number
+          const hasAlert = processedForecasts.some((day: { icon: string; weather?: any }) => {
+            return day.weather && day.weather[0] && day.weather[0].id < 700;
+          });
+
+          let alertMessage = null;
+          if (hasAlert) {
+            const alertConditions = processedForecasts.filter((day: { weather?: any }) => {
+              return day.weather && day.weather[0] && day.weather[0].id < 700;
+            });
+            if (alertConditions.length > 0) {
+              alertMessage = `Expect ${alertConditions[0].description} in the next days`;
+            }
+          }
+
+          const hasWeatherAlert = weatherData.weather.some((condition: any) => condition.id < 700);
+          
           return {
-            facilityName: data.name,
-            location: standardLocation,
-            temperature: Math.round(data.main.temp),
-            weatherDescription: data.weather[0].description,
-            weatherIcon: data.weather[0].icon,
-            hasAlert: hasAlert
+            weather: {
+              facilityName: weatherData.name,
+              location: standardLocation,
+              temperature: Math.round(weatherData.main.temp),
+              weatherDescription: weatherData.weather[0].description,
+              weatherIcon: weatherData.weather[0].icon,
+              hasAlert: hasWeatherAlert // Use the correct variable
+            },
+            forecast: {
+              daily: processedForecasts,
+              temperatureRange: temperatureRange,
+              alert: alertMessage || undefined
+            }
           };
         } catch (err) {
-          console.error(`Error fetching weather for ${standardLocation}:`, err);
+          console.error(`Error fetching data for ${standardLocation}:`, err);
           return null;
         }
       });
-  
-      const results = await Promise.all(weatherPromises);
-      const mapping: { [key: string]: WeatherData } = {};
+
+      const results = await Promise.all(promises);
+      
+      const weatherMap: { [key: string]: WeatherData } = {};
+      const forecastMap: { [key: string]: Forecast } = {};
+      
       results.forEach(result => {
         if (result) {
-          mapping[result.location] = result;
+          weatherMap[result.weather.location] = result.weather;
+          forecastMap[result.weather.location] = result.forecast;
         }
       });
-      setWeatherMapping(mapping);
+
+      setWeatherMapping(weatherMap);
+      setForecast(forecastMap);
     } catch (err) {
       setWeatherError("Failed to load weather data. Please try again later.");
     } finally {
       setLoading(prev => ({ ...prev, weather: false }));
     }
-  }
+  };
 
   // Update the fetchDashboardData function to fetch both bookings and facilities
   useEffect(() => {
@@ -340,7 +592,7 @@ const ResidentDashboard = () => {
         console.log("Unique locations for weather fetch:", locations);
   
         if (locations.length > 0) {
-          await fetchWeatherData(locations);
+          await fetchWeatherAndForecast(locations);
         }
   
         // Update bookings state
@@ -597,9 +849,15 @@ const ResidentDashboard = () => {
               {uniqueFacilities.map((facility) => {
                 const standardLocation = mapCustomLocationToStandard(facility.location);
                 const weather = weatherMapping[standardLocation];
+                const facilityForecast = forecast[standardLocation];
+                
                 return weather ? (
                   <Grid item xs={12} sm={6} md={4} key={facility.facility_id}>
-                    <WeatherCard facility={facility} weather={weather} />
+                    <WeatherCard 
+                      facility={facility} 
+                      weather={weather}
+                      forecast={facilityForecast}
+                    />
                   </Grid>
                 ) : null;
               })}
