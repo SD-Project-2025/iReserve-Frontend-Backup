@@ -105,7 +105,7 @@ const ViewUser: React.FC = () => {
     fetchUser();
   }, [id, location.state]);
 
-  const handleUpdateUserStatus = async (userId: number, status: string) => {
+  const handleUpdateUserStatus = async ( status: string) => {
     try {
       setProcessing(true);
       // In a real app, you would call an API endpoint
@@ -275,7 +275,7 @@ const ViewUser: React.FC = () => {
             onClick={() =>
               dialogAction &&
               handleUpdateUserStatus(
-                dialogAction.id, 
+               
                 dialogAction.action === "activate" ? "active" : "inactive"
               )
             }

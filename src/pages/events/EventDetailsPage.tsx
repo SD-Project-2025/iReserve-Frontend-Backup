@@ -260,7 +260,7 @@ const EventDetailsPage = () => {
   <Typography>
     Organized by: {typeof event.organizer === 'string' 
       ? event.organizer 
-      : event.organizer?.position || "Community Staff"}
+      : event.organizer || "Community Staff"}
   </Typography>
 </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>

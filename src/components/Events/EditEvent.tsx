@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate,useLocation } from "react-router-dom"
-import { format, parseISO } from 'date-fns'; // Updated imports
+import { format } from 'date-fns'; // Updated imports
 import {
   Box,
   Button,
@@ -80,28 +80,41 @@ const EditEvent = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-        const response = await api.get(`/events/${id}`);
-        const eventData = response.data.data;
+        setLoading(true)
         
-        // Properly parse ISO date strings to Date objects
-        setEvent({
+        // Fetch event data
+        const eventResponse = await api.get(`/events/${id}`)
+        const eventData = eventResponse.data.data
+        
+        // Convert string dates to Date objects
+        const formattedEvent = {
           ...eventData,
-          start_date: parseISO(eventData.start_date),
-          end_date: parseISO(eventData.end_date),
-          registration_deadline: parseISO(eventData.registration_deadline),
-        });
-        // ... rest of fetch logic
+          start_date: new Date(eventData.start_date),
+          end_date: new Date(eventData.end_date),
+          registration_deadline: new Date(eventData.registration_deadline),
+        }
+        
+        setEvent(formattedEvent)
+        
+        // Fetch facilities and staff for dropdowns
+        const [facilitiesResponse] = await Promise.all([
+          api.get('/facilities'),
+         
+        ])
+        
+        setFacilities(facilitiesResponse.data.data)
+       
+        
       } catch (err) {
-        console.error("Error fetching event:", err);
-        setError("Failed to load event data");
+        console.error("Error fetching data:", err)
+        setError("Failed to load event data. Please try again later.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, [id]);
+    fetchData()
+  }, [id])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -142,11 +155,11 @@ const EditEvent = () => {
         registration_deadline: format(event.registration_deadline, 'yyyy-MM-dd'),
       };
 
-      const response = await api.put(`/events/${id}`, payload);
+       await api.put(`/events/${id}`, payload);
       navigate(`/events/${id}`, { state: { message: "Event updated!" } });
     } catch (err) {
       console.error("Update error:", err);
-      setError(err.response?.data?.message || "Update failed");
+      
     } finally {
       setSaving(false);
     }

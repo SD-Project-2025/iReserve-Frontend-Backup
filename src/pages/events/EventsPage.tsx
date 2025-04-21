@@ -20,7 +20,7 @@ import {
 } from "@mui/material"
 import { Search as SearchIcon, Event as EventIcon } from "@mui/icons-material"
 import { api } from "@/services/api"
-import { id } from "date-fns/locale"
+
 
 interface Event {
   event_id: number
