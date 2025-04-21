@@ -21,6 +21,7 @@ import EventsPage from "./pages/events/EventsPage"
 import EventDetailsPage from "./pages/events/EventDetailsPage"
 import MaintenancePage from "./pages/maintenance/MaintenancePage"
 import CreateMaintenancePage from "./pages/maintenance/CreateMaintenancePage"
+import CreateEvent from "./pages/admin/CreateEvent"
 import MaintenanceDetailsPage from "./pages/maintenance/MaintenanceDetailsPage"
 import ProfilePage from "./pages/profile/ProfilePage"
 import NotificationsPage from "./pages/notifications/NotificationsPage"
@@ -111,6 +112,7 @@ function App() {
         <Route path="/admin/facilities" element={<ManageFacilitiesPage />} />
         <Route path="/admin/bookings" element={<ManageBookingsPage />} />
         <Route path="/admin/events" element={<ManageEventsPage />} />
+        <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
