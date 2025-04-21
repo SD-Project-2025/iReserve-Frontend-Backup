@@ -21,6 +21,7 @@ import EventsPage from "./pages/events/EventsPage"
 import EventDetailsPage from "./pages/events/EventDetailsPage"
 import MaintenancePage from "./pages/maintenance/MaintenancePage"
 import CreateMaintenancePage from "./pages/maintenance/CreateMaintenancePage"
+import CreateEvent from "./pages/admin/CreateEvent"
 import MaintenanceDetailsPage from "./pages/maintenance/MaintenanceDetailsPage"
 import ProfilePage from "./pages/profile/ProfilePage"
 import NotificationsPage from "./pages/notifications/NotificationsPage"
@@ -35,6 +36,8 @@ import ManageUsersPage from "./pages/admin/ManageUsersPage"
 import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ManageNotifications from "./pages/admin/ManageNotifiations"  
 
+//Landing Page
+import LandingPage from "./LandingPage"
 // Protected route component
 //@ts-ignore
 const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRole?: any }) => {
@@ -62,6 +65,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRol
 }
 
 function App() {
+  
   const { checkAuth } = useAuth()
 
   useEffect(() => {
@@ -70,9 +74,12 @@ function App() {
 
   return (
     <Routes>
+       <Route path="/" element={<LandingPage />} />
       {/* Auth Routes */}
+       <Route path="/" element={<LandingPage />} />
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
+       
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
       </Route>
 

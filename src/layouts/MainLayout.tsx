@@ -109,36 +109,39 @@ const MainLayout = () => {
 
   const drawer = (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          p: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Avatar
-            sx={{
-              width: 40,
-              height: 40,
-              bgcolor: "primary.main",
-              mr: 1.5,
-              fontWeight: "bold",
-            }}
-          >
-            IR
-          </Avatar>
-          <Typography variant="h6" noWrap component="h1" fontWeight="bold">
-            iReserve
-          </Typography>
-        </Box>
-        {!isMobile && (
-          <IconButton onClick={handleDrawerToggle} size="small">
-            <ChevronLeftIcon />
-          </IconButton>
-        )}
-      </Box>
+     <Box
+  sx={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    p: 2,
+  }}
+>
+  <Box
+    onClick={() => handleNavigate("/")}
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      cursor: "pointer",
+    }}
+  >
+    <Avatar
+      sx={{
+        width: 40,
+        height: 40,
+        bgcolor: "primary.main",
+        mr: 1.5,
+        fontWeight: "bold",
+      }}
+    >
+      IR
+    </Avatar>
+    <Typography variant="h6" noWrap component="h1" fontWeight="bold">
+      iReserve
+    </Typography>
+  </Box>
+</Box>
+
       <Divider />
 
       {user && (
