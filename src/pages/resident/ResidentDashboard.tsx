@@ -23,6 +23,10 @@ import { useAuth } from "../../contexts/AuthContext"
 import { api } from "../../services/api"
 import DashboardCard from "../../components/dashboard/DashboardCard"
 import RecentActivityList from "../../components/dashboard/RecentActivityList"
+import { DateCalendar, PickersDay } from "@mui/x-date-pickers"
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
+import { isSameDay } from "date-fns"
 
 const OPENWEATHER_API_KEY = "503990715e3d001d29e30e6113559cee";
 const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
@@ -783,6 +787,73 @@ const ResidentDashboard = () => {
       .map(b => [b.facility!.facility_id, b.facility])
     ).values()
   ).filter((facility): facility is Facility => facility !== undefined);
+
+ // 📅 For Calendar
+
+ console.log("All bookings raw:", bookings);
+//@ts-ignore
+const bookingDates = bookings
+  .filter((b) => b?.date && (b.status === "approved" || b.status === "pending"))
+  .map((b) => ({
+    date: new Date(new Date(b.date).setHours(0, 0, 0, 0)),
+    status: b.status,
+  }));
+
+  console.log("Booking dates for calendar:", bookingDates);
+
+
+
+  const CustomDay = (props: any) => {
+    const { day, outsideCurrentMonth, ...other } = props;
+  
+    const normalizedDay = new Date(day);
+    normalizedDay.setHours(0, 0, 0, 0);
+  
+    const booking = bookingDates.find((b) => isSameDay(b.date, normalizedDay));
+
+    // eslint-disable-next-line
+    let backgroundColor = "";
+    let hoverColor = "";
+  
+    if (booking) {
+      if (booking.status === "approved") {
+        backgroundColor = "green";
+        hoverColor = "darkgreen";
+      } else if (booking.status === "pending") {
+        backgroundColor = "orange";
+        hoverColor = "darkorange";
+      }
+    }
+    const isApprovedDay = bookingDates.some((booking) => isSameDay(booking.date, day) && booking.status === "approved");
+    const isPendingDay = bookingDates.some((booking) => isSameDay(booking.date, day) && booking.status === "pending");
+    
+    return (
+      <PickersDay
+        {...other}
+        outsideCurrentMonth={outsideCurrentMonth}
+        day={day}
+        sx={{
+          ...(isApprovedDay && {
+           backgroundColor: backgroundColor,
+            color: "white",
+            "&:hover": {
+              backgroundColor: hoverColor,
+            },
+          }),
+          ...(isPendingDay && {
+            backgroundColor: "orange",
+            color: "white",
+            "&:hover": {
+              backgroundColor: "darkorange",
+            },
+          }),
+        }}
+      />
+    );
+    
+  }
+  
+
   
   return (
     <section>
@@ -816,6 +887,8 @@ const ResidentDashboard = () => {
             color="#9c27b0"
           />
         </Grid>
+
+        
   
         {/* Weather Alerts */}
         <Grid item xs={12}>
@@ -933,6 +1006,27 @@ const ResidentDashboard = () => {
             )}
           />
         </Grid>
+
+       {/* Calendar View */}
+       <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" component="h3" gutterBottom>
+              Calendar View
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DateCalendar
+                disablePast={false}
+                slots={{
+                  day: CustomDay,
+                }}
+              />
+            </LocalizationProvider>
+          </CardContent>
+        </Card>
+      </Grid>
+
+
   
         {/* Upcoming Events */}
         <Grid item xs={12} md={6}>
@@ -992,7 +1086,10 @@ const ResidentDashboard = () => {
         </Grid>
       </Grid>
     </section>
+    
   )
+
+  
 }
   
 export default ResidentDashboard

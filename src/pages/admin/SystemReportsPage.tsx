@@ -25,10 +25,12 @@ import {
   Chip,
 } from "@mui/material"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
+import { Modal, Stack } from '@mui/material';
+import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+
 import {
   PictureAsPdf as PdfIcon,
-  TableChart as TableIcon,
-  BarChart as ChartIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material"
 
@@ -60,6 +62,11 @@ const SystemReportsPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [reportData, setReportData] = useState<any>(null)
   const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [openCharts, setOpenCharts] = useState(false);
+
+  const handleOpenCharts = () => setOpenCharts(true);
+  const handleCloseCharts = () => setOpenCharts(false);
+
   
 
   const handleGenerateReport = async () => {
@@ -152,6 +159,48 @@ const SystemReportsPage = () => {
       setGeneratingPdf(false)
     }
   }
+
+  const exportToCSV = () => {
+    if (!reportData?.data || reportData.data.length === 0) {
+      alert("No data to export");
+      return;
+    }
+  
+    // Get headers from keys
+    const headers = Object.keys(reportData.data[0]).join(",") + "\n";
+  
+    // Map the data rows
+    const rows = reportData.data
+  //@ts-ignore
+      .map(row => {
+        return Object.values(row)
+          .map(value => {
+            // If the value is a string, wrap it in quotes
+            if (typeof value === "string") {
+              return `"${value.replace(/"/g, '""')}"`; // Escape any double quotes
+            }
+            return value;
+          })
+          .join(",");
+      })
+      .join("\n");
+  
+    const csvContent = headers + rows;
+  
+    // Create Blob
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+  
+    // Create download link
+    const link = document.createElement("a");
+    link.href = url;
+    const timestamp = new Date().toISOString().slice(0,19).replace(/[-T:]/g, '');
+    link.setAttribute("download", `facility-usage-report-${timestamp}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   const renderReportTable = () => {
     if (!reportData) return null
@@ -350,12 +399,8 @@ const SystemReportsPage = () => {
                       {reportData.title} ({reportData.period})
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1 }}>
-                      <Button variant="outlined" startIcon={<TableIcon />} size="small">
-                        Export CSV
-                      </Button>
-                      <Button variant="outlined" startIcon={<ChartIcon />} size="small">
-                        View Charts
-                      </Button>
+                    <Button onClick={exportToCSV} variant="contained" >Export CSV</Button>
+                    <Button variant="contained" onClick={handleOpenCharts}>View Charts</Button>
                       <Button
                         variant="contained"
                         startIcon={<PdfIcon />}
@@ -378,6 +423,105 @@ const SystemReportsPage = () => {
           </>
         )}
       </Grid>
+
+      <Modal open={openCharts} onClose={handleCloseCharts}>
+      <Box sx={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '90%',
+        maxHeight: '90vh',
+        bgcolor: 'background.paper',
+        borderRadius: 4,
+        boxShadow: 24,
+        p: 4,
+        overflowY: 'auto',
+      }}>
+    <Typography variant="h4" align="center" gutterBottom>
+      📊 System Report Overview
+    </Typography>
+    <Stack spacing={4}>
+
+      {/* Facility Bookings - Bar Chart */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" align="center" gutterBottom>Facility Bookings Overview</Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={mockFacilityUsageData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="bookings">
+                {mockFacilityUsageData.map((_entry, index) => (
+                  <Cell key={`bar-${index}`} fill={['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'][index % 5]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+
+          {/* Maintenance Tasks - Pie Chart */}
+          <Typography variant="h6" align="center" gutterBottom>Maintenance Task Priorities</Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={mockMaintenanceData}
+                dataKey="count"
+                nameKey="priority"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name }) => name}
+              >
+              
+                {mockMaintenanceData.map((_entry, index) => (
+                  <Cell key={`pie-${index}`} fill={['#FF6384', '#36A2EB', '#FFCE56'][index % 3]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" />
+            </PieChart>
+          </ResponsiveContainer>
+
+          {/* User Activity - Line Chart */}
+          <Typography variant="h6" align="center" gutterBottom>User Activity Overview</Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={mockUserActivityData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="user_type" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="active" 
+                stroke="#36A2EB" 
+                strokeWidth={3}
+                dot={{ r: 6, fill: '#36A2EB' }}
+                activeDot={{ r: 8 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="bookings" 
+                stroke="#FF6384" 
+                strokeWidth={3}
+                dot={{ r: 6, fill: '#FF6384' }}
+                activeDot={{ r: 8 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+    </Stack>
+
+    <Button variant="outlined" onClick={handleCloseCharts} sx={{ mt: 4, display: 'block', mx: 'auto' }}>
+      Close
+    </Button>
+  </Box>
+</Modal>
     </section>
   )
 }
