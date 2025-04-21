@@ -21,6 +21,7 @@ import {
   StepLabel,
   Checkbox,
   FormControlLabel,
+  Snackbar,
 } from "@mui/material"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { TimePicker } from "@mui/x-date-pickers/TimePicker"
@@ -43,6 +44,7 @@ const CreateEventPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -271,12 +273,19 @@ const CreateEventPage = () => {
       }
 
       await api.post("/events", payload)
-      navigate("/events", { state: { success: "Event created successfully!" } })
+      setShowSuccessToast(true)
+      setTimeout(() => {
+        navigate("/events")
+      }, 2000) // Navigate after showing the toast for 2 seconds
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to create event. Please check all fields.")
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleCloseToast = () => {
+    setShowSuccessToast(false)
   }
 
   const steps = ["Event Details", "Schedule & Capacity", "Finalize"]
@@ -487,6 +496,17 @@ const CreateEventPage = () => {
           )}
         </CardContent>
       </Card>
+
+      <Snackbar
+        open={showSuccessToast}
+        autoHideDuration={2000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseToast} severity="success" sx={{ width: '100%' }}>
+          An event created successfully!
+        </Alert>
+      </Snackbar>
     </section>
   )
 }
