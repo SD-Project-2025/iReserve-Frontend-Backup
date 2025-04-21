@@ -147,7 +147,11 @@ const CreateEventPage = () => {
       if (!formData.description.trim()) {
         errors.description = "Description is required"
         isValid = false
+      } else if (formData.description.trim().length < 10) {
+        errors.description = "Description must be at least 10 characters"
+        isValid = false
       }
+      
 
       if (!formData.facility_id) {
         errors.facility_id = "Please select a facility"
