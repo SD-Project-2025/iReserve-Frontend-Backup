@@ -374,8 +374,9 @@ const MaintenanceDetailsPage = () => {
               <Button
                 variant="outlined"
                 fullWidth
+                
                 sx={{ mb: 2 }}
-                onClick={() => navigate(`/facilities/${report.facility?.facility_id}`)}
+                onClick={() => navigate(`/admin/facilities/${report.facility?.facility_id}`,{state:{id:report.facility?.facility_id}})}
               >
                 View Facility
               </Button>

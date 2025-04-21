@@ -35,6 +35,8 @@ import ManageMaintenancePage from "./pages/admin/ManageMaintenancePage"
 import ManageUsersPage from "./pages/admin/ManageUsersPage"
 import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ManageNotifications from "./pages/admin/ManageNotifiations"  
+import EditEvent from "./components/Events/EditEvent"
+import ViewUser from "./components/admin/ViewUser"
 
 //Landing Page
 import LandingPage from "./LandingPage"
@@ -117,13 +119,22 @@ function App() {
       >
         <Route path="/admin/facilities" element={<ManageFacilitiesPage />} />
         <Route path="/admin/bookings" element={<ManageBookingsPage />} />
+        <Route path="/admin/bookings/:id" element={<BookingDetailsPage />} />
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
         <Route path="/admin/events/create" element={<CreateEvent />} />
+        <Route path="/admin/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
+        <Route path="/admin/users/:id"element={<ViewUser />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
         <Route path ="/admin/emaiUser" element={<ManageNotifications/>}/>
+        <Route path="/admin/events/:id" element={<EventDetailsPage />} />
+       < Route path="/admin/events/:id/edit" element={<EditEvent />} />
+       <Route path="admin/facilities/:id/edit" element={<FacilityDetailsPage />} />
+        <Route path="/admin/notifications" element={<ManageNotifications />} />
+        <Route path="/admin/notifications/:id" element={<NotificationsPage />} />
+        <Route path="/admin/facilities/:id" element={<FacilityDetailsPage />} />
       </Route>
 
       {/* 404 Route */}

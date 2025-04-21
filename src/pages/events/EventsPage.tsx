@@ -20,6 +20,7 @@ import {
 } from "@mui/material"
 import { Search as SearchIcon, Event as EventIcon } from "@mui/icons-material"
 import { api } from "@/services/api"
+import { id } from "date-fns/locale"
 
 interface Event {
   event_id: number
@@ -150,7 +151,7 @@ const EventsPage = () => {
           {filteredEvents.map((event) => (
             <Grid item xs={12} sm={6} md={4} key={event.event_id}>
               <Card>
-                <CardActionArea onClick={() => navigate(`/events/${event.event_id}`)}>
+                <CardActionArea onClick={() => navigate(`/events/${event.event_id}`,{state:{id:event.event_id}})}>
                   <CardMedia
                     component="img"
                     height="160"

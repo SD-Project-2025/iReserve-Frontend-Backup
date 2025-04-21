@@ -215,7 +215,7 @@ const BookingDetailsPage = () => {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate(`/facilities/${booking.facility?.facility_id}`)}
+                  onClick={() => navigate(`/facilities/${booking.facility?.facility_id}`,{state:{id: booking.facility?.facility_id}})}
                   fullWidth
                 >
                   View Facility
