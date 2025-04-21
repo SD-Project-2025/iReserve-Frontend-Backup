@@ -13,7 +13,8 @@ import LoginPage from "./pages/auth/LoginPage"
 import AuthCallbackPage from "./pages/auth/AuthCallbackPage"
 import DashboardPage from "./pages/dashboard/DashboardPage"
 import FacilitiesPage from "./pages/facilities/FacilitiesPage"
-import FacilityDetailsPage from "./pages/facilities/FacilityDetailsPage"
+import EventDetail from "./pages/events/EventDetail"
+import FacilityDetailPage from "./pages/facilities/FacilityDetailPage"
 import BookingsPage from "./pages/bookings/BookingsPage"
 import CreateBookingPage from "./pages/bookings/CreateBookingPage"
 import BookingDetailsPage from "./pages/bookings/BookingDetailsPage"
@@ -86,12 +87,13 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/facilities" element={<FacilitiesPage />} />
-        <Route path="/facilities/:id" element={<FacilityDetailsPage />} />
+        
+        <Route path="/facilities/:facilityId" element={<FacilityDetailPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="/bookings/create" element={<CreateBookingPage />} />
         <Route path="/bookings/:id" element={<BookingDetailsPage />} />
         <Route path="/events" element={<EventsPage />} />
-        <Route path="/events/:id" element={<EventDetailsPage />} />
+        <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/maintenance/create" element={<CreateMaintenancePage />} />
         <Route path="/maintenance/:id" element={<MaintenanceDetailsPage />} />
