@@ -36,6 +36,8 @@ import ManageUsersPage from "./pages/admin/ManageUsersPage"
 import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ManageNotifications from "./pages/admin/ManageNotifiations"  
 
+//Landing Page
+import LandingPage from "./LandingPage"
 // Protected route component
 //@ts-ignore
 const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRole?: any }) => {
@@ -63,6 +65,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRol
 }
 
 function App() {
+  
   const { checkAuth } = useAuth()
 
   useEffect(() => {
@@ -71,9 +74,12 @@ function App() {
 
   return (
     <Routes>
+       <Route path="/" element={<LandingPage />} />
       {/* Auth Routes */}
+       <Route path="/" element={<LandingPage />} />
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
+       
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
       </Route>
 
@@ -114,6 +120,7 @@ function App() {
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
+        <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
         <Route path ="/admin/emaiUser" element={<ManageNotifications/>}/>

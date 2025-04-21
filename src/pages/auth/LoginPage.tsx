@@ -30,7 +30,7 @@ mode;
           borderRadius: 3,
         }}
       >
-        <Avatar
+        <Avatar onClick={() => navigate("/")}
           sx={{
             width: 60,
             height: 60,
