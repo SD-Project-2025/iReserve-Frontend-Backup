@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate,useLocation } from "react-router-dom"
 import {
   Typography,
   Grid,
@@ -65,7 +65,9 @@ interface Event {
 }
 
 const EventDetailsPage = () => {
-  const { id } = useParams<{ id: string }>()
+   
+  const location = useLocation()
+  const id = location.state?.id || useParams<{ id: string }>().id
   const navigate = useNavigate()
   const { user } = useAuth()
   const [event, setEvent] = useState<Event | null>(null)
@@ -254,10 +256,13 @@ const EventDetailsPage = () => {
               </Box>
 
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <PersonIcon color="action" sx={{ mr: 1 }} />
-                <Typography>Organized by: {event.organizer || "Community Staff"}</Typography>
-              </Box>
-
+  <PersonIcon color="action" sx={{ mr: 1 }} />
+  <Typography>
+    Organized by: {typeof event.organizer === 'string' 
+      ? event.organizer 
+      : event.organizer || "Community Staff"}
+  </Typography>
+</Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <GroupIcon color="action" sx={{ mr: 1 }} />
                 <Typography>

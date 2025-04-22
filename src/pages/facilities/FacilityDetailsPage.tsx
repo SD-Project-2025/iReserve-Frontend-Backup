@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate,useLocation } from "react-router-dom"
 import {
   Typography,
   Box,
@@ -69,7 +69,9 @@ interface Event {
 }
 
 const FacilityDetailsPage = () => {
-  const { id } = useParams<{ id: string }>()
+ 
+  const location = useLocation()
+  const id = location.state?.id || useParams<{ id: string }>().id
   const navigate = useNavigate()
   const { user } = useAuth()
   const [facility, setFacility] = useState<Facility | null>(null)
