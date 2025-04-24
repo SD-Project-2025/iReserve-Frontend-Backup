@@ -1,5 +1,5 @@
 # iReserve-Frontend
-[![codecov](https://codecov.io/gh/Vuyosinethe/iReserve-Frontend-Backup.git/branch/codecov_test/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/YOUR_REPO)
+[![codecov](https://codecov.io/gh/SD-Project-2025/iReserve-Frontend-Backup/graph/badge.svg?token=dZ53gSdc1G)](https://codecov.io/gh/SD-Project-2025/iReserve-Frontend-Backup)
 
 
 **iReserve Frontend**
