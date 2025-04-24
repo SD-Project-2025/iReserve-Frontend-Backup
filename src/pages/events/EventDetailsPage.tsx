@@ -25,6 +25,7 @@ import {
   ListItemAvatar,
   Avatar,
   Paper,
+  Stack,
 } from "@mui/material"
 import {
   CalendarMonth as CalendarIcon,
@@ -34,7 +35,6 @@ import {
   Person as PersonIcon,
   Edit as EditIcon,
   Cancel as CancelIcon,
-  CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material"
 import { api } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
@@ -95,20 +95,17 @@ const EventDetailsPage = () => {
     try {
       setLoading(true);
       setError(null);
-  
-      // First get event details
+      
       const eventResponse = await api.get(`/events/${id}`);
       let isRegistered = false;
   
-      // Check registration status for logged-in users
       if (user) {
         try {
           const regResponse = await api.get(`/events/${id}/registration-status`);
-          isRegistered = regResponse.data.data.registered;
+          // Ensure this endpoint checks for ACTIVE registrations only
+          isRegistered = regResponse.data.data.registered; 
         } catch (err) {
-          console.error("Registration check failed:", err);
-          // Don't treat 403 as error - just assume not registered
-          if (err.response?.status !== 403) {
+          if ((err as any)?.response?.status !== 404) { // Ignore "not found" errors
             setError("Failed to check registration status");
           }
         }
@@ -119,8 +116,7 @@ const EventDetailsPage = () => {
         is_registered: isRegistered
       });
     } catch (err) {
-      console.error("Error fetching event details:", err);
-      setError("Failed to load event details. Please try again later.");
+      setError("Failed to load event details");
     } finally {
       setLoading(false);
     }
@@ -130,30 +126,16 @@ const EventDetailsPage = () => {
     if (id) fetchEventDetails()
   }, [id, user?.id])
 
-  const handleCancelEvent = async () => {
-    try {
-      setActionLoading(true);
-      await api.patch(`/events/${id}/cancel`);
-      await fetchEventDetails();
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to cancel the event. Please try again.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleRegister = async () => {
     try {
       setActionLoading(true)
       const response = await api.post(`/events/${id}/register`)
       
       if (response.data.message?.includes("Already registered")) {
-        // Refresh status if already registered
         await fetchEventDetails()
         return
       }
 
-      // Successful registration
       await fetchEventDetails()
       setConfirmDialogOpen(false)
     } catch (err: any) {
@@ -165,12 +147,25 @@ const EventDetailsPage = () => {
 
   const handleCancelRegistration = async () => {
     try {
-      setActionLoading(true)
-      await api.delete(`/events/${id}/register`)
-      await fetchEventDetails()
-      setCancelDialogOpen(false)
+      setActionLoading(true);
+      // Use PUT method and the correct endpoint structure
+      await api.put(`/events/${id}/cancel-registration`);
+      await fetchEventDetails();
+      setCancelDialogOpen(false);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to cancel registration. Please try again.")
+      setError(err.response?.data?.message || "Failed to cancel registration. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelEvent = async () => {
+    try {
+      setActionLoading(true)
+      await api.patch(`/events/${id}/cancel-registration`)
+      await fetchEventDetails()
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to cancel the event. Please try again.")
     } finally {
       setActionLoading(false)
     }
@@ -202,52 +197,24 @@ const EventDetailsPage = () => {
       : `Staff #${event.organizer.employee_id}`
   }
 
-  const renderRegistrationButton = () => {
+  const renderRegistrationButtons = () => {
     if (!event) return null
 
     switch (event.status.toLowerCase()) {
       case "upcoming":
-        if (event.is_registered) {
-          return (
-            <>
-              <Alert 
-                icon={<CheckCircleIcon fontSize="inherit" />} 
-                severity="success" 
-                sx={{ mb: 3 }}
-              >
-                You are registered for this event!
-                {event.registration?.payment_status === 'pending' && (
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    Payment status: Pending
-                  </Typography>
-                )}
-              </Alert>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<CancelIcon />}
-                onClick={() => setCancelDialogOpen(true)}
-                disabled={actionLoading}
-                fullWidth
-              >
-                {actionLoading ? <CircularProgress size={24} /> : "Cancel Registration"}
-              </Button>
-            </>
-          )
-        }
-
         if (event.current_attendees >= event.max_attendees) {
           return (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error">
               This event is fully booked.
             </Alert>
           )
         }
 
         return (
-          <>
+          <Stack spacing={2}>
             <Button
               variant="contained"
+              color="primary"
               startIcon={<PersonIcon />}
               onClick={() => setConfirmDialogOpen(true)}
               disabled={actionLoading || user?.type !== 'resident'}
@@ -256,26 +223,37 @@ const EventDetailsPage = () => {
               {actionLoading ? <CircularProgress size={24} /> : 
                user?.type === 'resident' ? "Register for Event" : "Sign in as resident to register"}
             </Button>
-          </>
+            
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<CancelIcon />}
+              onClick={() => setCancelDialogOpen(true)}
+              disabled={actionLoading}
+              fullWidth
+            >
+              {actionLoading ? <CircularProgress size={24} /> : "Cancel Registration"}
+            </Button>
+          </Stack>
         )
 
       case "ongoing":
         return (
-          <Alert severity="warning" sx={{ mb: 3 }}>
+          <Alert severity="warning">
             This event is currently ongoing. Registration is closed.
           </Alert>
         )
 
       case "completed":
         return (
-          <Alert severity="info" sx={{ mb: 3 }}>
+          <Alert severity="info">
             This event has already taken place.
           </Alert>
         )
 
       case "cancelled":
         return (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error">
             This event has been cancelled.
           </Alert>
         )
@@ -439,7 +417,7 @@ const EventDetailsPage = () => {
                 Registration
               </Typography>
 
-              {renderRegistrationButton()}
+              {renderRegistrationButtons()}
 
               <Divider sx={{ my: 3 }} />
 

@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Rating,
+  TextField,
 } from "@mui/material"
 import {
   AccessTime as TimeIcon,
@@ -32,6 +34,8 @@ import {
   LocationOn as LocationIcon,
   Info as InfoIcon,
   Event as EventIcon,
+  Star as StarIcon,
+  Comment as CommentIcon,
 } from "@mui/icons-material"
 import { api } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
@@ -48,6 +52,7 @@ interface Facility {
   description: string
   open_time: string
   close_time: string
+  average_rating?: number
 }
 
 interface Booking {
@@ -68,6 +73,15 @@ interface Event {
   status: string
 }
 
+interface Rating {
+  rating_id: number
+  user_id: number
+  user_name: string
+  rating: number
+  comment: string
+  created_at: string
+}
+
 const FacilityDetailsPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -75,9 +89,13 @@ const FacilityDetailsPage = () => {
   const [facility, setFacility] = useState<Facility | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [ratings, setRatings] = useState<Rating[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
+  const [userRating, setUserRating] = useState<number | null>(null)
+  const [comment, setComment] = useState<string>("")
+  const [ratingLoading, setRatingLoading] = useState(false)
 
   useEffect(() => {
     const fetchFacilityDetails = async () => {
@@ -115,6 +133,15 @@ const FacilityDetailsPage = () => {
         } catch (eventsError) {
           console.warn("Failed to fetch events:", eventsError)
           setEvents([])
+        }
+
+        // Fetch ratings data
+        try {
+          const ratingsResponse = await api.get(`/facilities/${id}/ratings`)
+          setRatings(ratingsResponse.data?.data || [])
+        } catch (ratingsError) {
+          console.warn("Failed to fetch ratings:", ratingsError)
+          setRatings([])
         }
 
       } catch (err: any) {
@@ -179,6 +206,46 @@ const FacilityDetailsPage = () => {
     navigate("/maintenance/create", { state: { facilityId: facility.facility_id } })
   }
 
+  const handleRatingSubmit = async () => {
+    if (userRating === null || !facility) return
+    console.log("Submitting rating with:", {
+      facility_id: facility.facility_id,
+      rating: userRating,
+      comment,
+      user_id: user?.id,
+      userExists: !!user
+    });
+    
+
+    try {
+      setRatingLoading(true)
+      const response = await api.post("/facilities/ratings", {  // Changed endpoint to match your route
+        facility_id: facility.facility_id,  // Changed from facilityId to facility_id
+        rating: userRating,
+        comment,
+        user_id: user?.id  // Changed from userId to user_id
+      })
+  
+      if (response.data.success) {
+        // Refresh ratings
+        const ratingsResponse = await api.get(`/facilities/${facility.facility_id}/ratings`)
+        setRatings(ratingsResponse.data?.data || [])
+        
+        // Update facility with new average rating
+        const facilityResponse = await api.get(`/facilities/${facility.facility_id}`)
+        setFacility(facilityResponse.data.data)
+        
+        setComment("")
+        setUserRating(null)
+      }
+    } catch (err: any) {
+      console.error("Error submitting rating:", err)
+      setError(err.response?.data?.message || "Failed to submit rating. Please try again.")
+    } finally {
+      setRatingLoading(false)
+    }
+  }
+
   const handleRetry = () => {
     setError(null)
     if (id) {
@@ -233,6 +300,14 @@ const FacilityDetailsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             {facility.type} • {facility.is_indoor ? "Indoor" : "Outdoor"} • Capacity: {facility.capacity}
           </Typography>
+          {facility.average_rating !== undefined && (
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+              <StarIcon color="warning" fontSize="small" />
+              <Typography variant="subtitle1" color="text.secondary" sx={{ ml: 0.5 }}>
+                {facility.average_rating.toFixed(1)}/5 ({ratings.length} {ratings.length === 1 ? 'review' : 'reviews'})
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Box>
 
@@ -278,6 +353,93 @@ const FacilityDetailsPage = () => {
                   </Typography>
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Ratings and Reviews Section */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h5" component="h2" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <StarIcon color="primary" sx={{ mr: 1 }} />
+                Ratings & Reviews
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                {facility.average_rating !== undefined ? (
+                  <>
+                    <Rating
+                      value={facility.average_rating}
+                      precision={0.1}
+                      readOnly
+                      sx={{ mr: 1 }}
+                    />
+                    <Typography variant="h6">
+                      {facility.average_rating.toFixed(1)} out of 5
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography color="text.secondary">No ratings yet</Typography>
+                )}
+              </Box>
+
+              {user?.type === "resident" && (
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Share Your Experience
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography sx={{ mr: 2 }}>Your Rating:</Typography>
+                    <Rating
+                      value={userRating}
+                      precision={0.5}
+                      onChange={(_, newValue) => {
+                        setUserRating(newValue)
+                      }}
+                    />
+                  </Box>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={4}
+                    variant="outlined"
+                    label="Your Review"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    sx={{ mb: 2 }}
+                  />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleRatingSubmit}
+                    disabled={ratingLoading || userRating === null}
+                  >
+                    {ratingLoading ? <CircularProgress size={24} /> : "Submit Review"}
+                  </Button>
+                </Box>
+              )}
+
+              {ratings.length > 0 ? (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CommentIcon color="primary" sx={{ mr: 1 }} />
+                    User Reviews
+                  </Typography>
+                  {ratings.map((rating) => (
+                    <Box key={rating.rating_id} sx={{ mb: 3, pb: 2, borderBottom: '1px solid #eee' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography fontWeight="bold">{rating.user_name}</Typography>
+                        <Typography color="text.secondary">
+                          {new Date(rating.created_at).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <Rating value={rating.rating} precision={0.5} readOnly size="small" sx={{ mb: 1 }} />
+                      <Typography>{rating.comment}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Typography color="text.secondary">No reviews yet. Be the first to review!</Typography>
+              )}
             </CardContent>
           </Card>
 
@@ -444,6 +606,21 @@ const FacilityDetailsPage = () => {
                     sx={{ ml: 1, textTransform: 'capitalize' }}
                   />
                 </Typography>
+                {facility.average_rating !== undefined && (
+                  <Typography sx={{ display: 'flex', alignItems: 'center' }}>
+                    <strong>Average Rating:</strong>
+                    <Rating
+                      value={facility.average_rating}
+                      precision={0.1}
+                      readOnly
+                      size="small"
+                      sx={{ ml: 1 }}
+                    />
+                    <Typography variant="body2" sx={{ ml: 1 }}>
+                      ({facility.average_rating.toFixed(1)})
+                    </Typography>
+                  </Typography>
+                )}
               </Box>
             </CardContent>
           </Card>
