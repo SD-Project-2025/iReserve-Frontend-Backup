@@ -56,7 +56,7 @@ interface Event {
   max_attendees: number
   current_attendees: number
   is_registered: boolean
-  organizer?: string
+  organizer?: string | { position: string }
   attendees?: Array<{
     id: number
     name: string
@@ -67,12 +67,19 @@ interface Event {
 const EventDetailsPage = () => {
    
   const location = useLocation()
-  const id = location.state?.id || useParams<{ id: string }>().id
+  const { id: paramId } = useParams<{ id: string }>()
+  const id = location.state?.id || paramId
+
   const navigate = useNavigate()
   const { user } = useAuth()
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  if (!id) {
+    setError("Event ID is missing.")
+    return null
+  }
   const [registering, setRegistering] = useState(false)
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
@@ -258,9 +265,9 @@ const EventDetailsPage = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
   <PersonIcon color="action" sx={{ mr: 1 }} />
   <Typography>
-    Organized by: {typeof event.organizer === 'string' 
-      ? event.organizer 
-      : event.organizer || "Community Staff"}
+    Organized by: {typeof event.organizer === 'string'
+      ? event.organizer
+      : event.organizer?.position || "Community Staff"}
   </Typography>
 </Box>
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
