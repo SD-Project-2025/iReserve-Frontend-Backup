@@ -36,6 +36,7 @@ interface Facility {
   image_url: string
   status: string
   description: string
+  average_rating?: number | null
 }
 
 const FacilitiesPage = () => {
@@ -53,10 +54,30 @@ const FacilitiesPage = () => {
       try {
         setLoading(true)
         setError(null)
-
+  
         const response = await api.get("/facilities")
-        setFacilities(response.data.data)
-        setFilteredFacilities(response.data.data)
+        const facilitiesData: Facility[] = response.data.data
+  
+        // Fetch ratings for each facility
+        const facilitiesWithRatings = await Promise.all(
+          facilitiesData.map(async (facility) => {
+            try {
+              const ratingsRes = await api.get(`/facilities/ratings/`)
+              const ratings = ratingsRes.data.data || []
+              const average =
+                ratings.length > 0
+                  ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length
+                  : null
+              return { ...facility, average_rating: average }
+            } catch (err) {
+              console.warn(`Could not fetch ratings for facility ${facility.facility_id}`)
+              return { ...facility, average_rating: null }
+            }
+          })
+        )
+  
+        setFacilities(facilitiesWithRatings)
+        setFilteredFacilities(facilitiesWithRatings)
       } catch (err) {
         console.error("Error fetching facilities:", err)
         setError("Failed to load facilities. Please try again later.")
@@ -64,7 +85,7 @@ const FacilitiesPage = () => {
         setLoading(false)
       }
     }
-
+  
     fetchFacilities()
   }, [])
 
@@ -211,6 +232,11 @@ const FacilitiesPage = () => {
                         ? `${facility.description.substring(0, 100)}...`
                         : facility.description}
                     </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {facility.average_rating !== null && facility.average_rating !== undefined
+                      ? `Rating: ${facility.average_rating.toFixed(1)} ★`
+                      : "No ratings yet"}
+                  </Typography>
                   </CardContent>
                 </CardActionArea>
               </Card>
