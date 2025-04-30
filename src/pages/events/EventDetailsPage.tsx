@@ -38,7 +38,7 @@ import {
 } from "@mui/icons-material"
 import { api } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
-
+import LocationMap from "@/services/Map"
 interface Organizer {
   staff_id: number
   employee_id: string
@@ -90,7 +90,7 @@ const EventDetailsPage = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [showAttendees, setShowAttendees] = useState(false)
-
+ 
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
@@ -111,9 +111,15 @@ const EventDetailsPage = () => {
         }
       }
   
+      const eventData = eventResponse.data.data;
+      const location = eventData.facility?.location || "Unknown Location";
       setEvent({
-        ...eventResponse.data.data,
-        is_registered: isRegistered
+        ...eventData,
+        is_registered: isRegistered,
+        facility: {
+          ...eventData.facility,
+          location: location.trim() ? location : "Unknown Location"
+        }
       });
     } catch (err) {
       setError("Failed to load event details");
@@ -326,7 +332,7 @@ const EventDetailsPage = () => {
               <Typography variant="h6" gutterBottom>
                 Event Details
               </Typography>
-
+            
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <LocationIcon color="action" sx={{ mr: 1 }} />
                 <Typography>
@@ -408,6 +414,11 @@ const EventDetailsPage = () => {
               )}
             </CardContent>
           </Card>
+             <Box sx={{ display: "flex", alignItems: "center", mb:2 }}>
+                                   
+                                    <LocationMap Facility={event.facility} />
+          
+                                  </Box>
         </Grid>
 
         <Grid item xs={12} md={4}>
