@@ -36,6 +36,7 @@ jobs:
           VITE_API_URL : ${{ secrets.VITE_API_URL }}
           VITE_EMAIL_URL : ${{ secrets.VITE_EMAIL_URL }}
           VITE_REDIRECT_URL : ${{ secrets.VITE_REDIRECT_URL }}
+          VITE_GOOGLE_MAPS_API_KEY :  ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
