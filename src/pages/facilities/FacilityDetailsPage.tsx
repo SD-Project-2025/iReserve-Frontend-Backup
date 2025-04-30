@@ -39,7 +39,7 @@ import {
 } from "@mui/icons-material"
 import { api } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
-
+import LocationMap from "@/services/Map"
 interface Facility {
   facility_id: number
   name: string
@@ -96,7 +96,7 @@ const FacilityDetailsPage = () => {
   const [userRating, setUserRating] = useState<number | null>(null)
   const [comment, setComment] = useState<string>("")
   const [ratingLoading, setRatingLoading] = useState(false)
-
+ 
   useEffect(() => {
     const fetchFacilityDetails = async () => {
       try {
@@ -572,6 +572,13 @@ const FacilityDetailsPage = () => {
               Report Issue
             </Button>
           </Box>
+          <br />
+          
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                          
+                          <LocationMap Facility={facility} />
+
+                        </Box>
         </Grid>
 
         <Grid item xs={12} md={4}>
