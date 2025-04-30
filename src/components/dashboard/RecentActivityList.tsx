@@ -12,8 +12,12 @@ import {
   Button,
   Card,
   CardContent,
+  //@ts-ignore
   CardActions,
+  CircularProgress,
+  Alert
 } from "@mui/material"
+import { Link } from "react-router-dom"
 
 interface Activity {
   rawData: any
@@ -47,23 +51,35 @@ const RecentActivityList = ({
   return (
     <Card>
       <CardContent>
-        <Typography variant="h6" component="h3" gutterBottom>
-          {title}
-        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h6" component="h3">
+            {title}
+          </Typography>
+          {(viewAllLink || viewAllAction) && (
+            <Button 
+              size="small" 
+              onClick={viewAllAction} 
+              component={viewAllLink ? Link : Button} 
+              to={viewAllLink}
+            >
+              View All
+            </Button>
+          )}
+        </Box>
+        
         {loading ? (
-          <Typography>Loading...</Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+            <CircularProgress />
+          </Box>
         ) : activities.length > 0 ? (
           <List disablePadding>
             {activities.map((activity, index) => (
-              <Box key={activity.id}>
-                {index > 0 && <Divider />}
+              <div key={activity.id}>
                 <ListItem
                   alignItems="flex-start"
                   sx={{ py: 1.5 }}
                   secondaryAction={
-                    activity.status && (
-                      <Chip label={activity.status} color={activity.statusColor || "default"} size="small" />
-                    )
+                    renderActions && renderActions(activity)
                   }
                 >
                   <ListItemText
@@ -81,24 +97,25 @@ const RecentActivityList = ({
                       </Box>
                     }
                   />
+                  {activity.status && (
+                    <Chip 
+                      label={activity.status} 
+                      color={activity.statusColor || "default"} 
+                      size="small" 
+                      sx={{ ml: 2 }}
+                    />
+                  )}
                 </ListItem>
-                {renderActions && <Box sx={{ pl: 2, pr: 2, pb: 1 }}>{renderActions(activity)}</Box>}
-              </Box>
+                {index < activities.length - 1 && <Divider />}
+              </div>
             ))}
           </List>
         ) : (
-          <Typography color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
+          <Alert severity="info" sx={{ mt: 2 }}>
             {emptyMessage}
-          </Typography>
+          </Alert>
         )}
       </CardContent>
-      {(viewAllLink || viewAllAction) && (
-        <CardActions>
-          <Button size="small" onClick={viewAllAction} href={viewAllLink}>
-            View All
-          </Button>
-        </CardActions>
-      )}
     </Card>
   )
 }

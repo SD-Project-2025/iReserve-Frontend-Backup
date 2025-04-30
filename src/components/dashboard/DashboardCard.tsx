@@ -9,8 +9,15 @@ interface DashboardCardProps {
   sx?: SxProps<Theme>
   children?: ReactNode
 }
-/// Testing
-const DashboardCard = ({ title, value, icon, color = "primary.main", sx, children }: DashboardCardProps) => {
+
+const DashboardCard = ({ 
+  title, 
+  value, 
+  icon, 
+  color = "primary.main", 
+  sx, 
+  children 
+}: DashboardCardProps) => {
   return (
     <Card sx={{ height: "100%", ...sx }}>
       <CardContent>

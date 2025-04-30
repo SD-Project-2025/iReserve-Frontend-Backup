@@ -27,6 +27,7 @@ import { DateCalendar, PickersDay } from "@mui/x-date-pickers"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import { isSameDay } from "date-fns"
+import ChatbotWidget from "../../components/chatbot/ChatbotWidget"
 
 const OPENWEATHER_API_KEY = "503990715e3d001d29e30e6113559cee";
 const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
@@ -1085,6 +1086,9 @@ const bookingDates = bookings
           />
         </Grid>
       </Grid>
+
+      {/* Add the chatbot widget */}
+      <ChatbotWidget />
     </section>
     
   )
