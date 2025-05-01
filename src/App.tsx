@@ -37,6 +37,8 @@ import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ManageNotifications from "./pages/admin/ManageNotifiations"  
 import EditEvent from "./components/Events/EditEvent"
 import ViewUser from "./components/admin/ViewUser"
+import AddFacility from "./pages/admin/AddFacility";
+
 
 //Landing Page
 import LandingPage from "./LandingPage"
@@ -123,7 +125,7 @@ function App() {
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
-        <Route path="/admin/events/create" element={<CreateEvent />} />
+        <Route path="/admin/facilities/create" element={<AddFacility />} />
         <Route path="/admin/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/users/:id"element={<ViewUser />} />
