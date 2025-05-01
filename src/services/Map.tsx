@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 
+// Extend the Window interface to include the google property
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
+
 import {
   Box,
   Typography,

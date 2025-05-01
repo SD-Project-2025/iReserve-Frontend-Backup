@@ -82,11 +82,14 @@ const ChatbotWidget = () => {
           }
         `;
         document.head.appendChild(styleElement);
-        
+        //@ts-ignore
+        const AGENT_ID = import.meta.env.VITE_CHATBOT_AGENT_ID
+        //@ts-ignore
+        const PROJECT_ID = import.meta.env.VITE_CHATBOT_PROJECT_ID
         // Create the main df-messenger element
         const dfMessenger = document.createElement('df-messenger');
-        dfMessenger.setAttribute('project-id', 'ireservechatbot');
-        dfMessenger.setAttribute('agent-id', '685fb76a-30f7-4ea0-a93e-414670f66967');
+        dfMessenger.setAttribute('project-id',PROJECT_ID);
+        dfMessenger.setAttribute('agent-id',AGENT_ID);
         dfMessenger.setAttribute('language-code', 'en');
         dfMessenger.setAttribute('max-query-length', '-1');
         
@@ -100,8 +103,8 @@ const ChatbotWidget = () => {
         // Add to the DOM
         document.body.appendChild(dfMessenger);
         
-        // Create and show the tooltip with welcome message
-        setTimeout(() => {
+        // Function to create and show tooltip
+        const createTooltip = () => {
           // First remove any existing tooltips
           document.querySelectorAll('.df-messenger-tooltip').forEach(el => el.remove());
           
@@ -120,25 +123,52 @@ const ChatbotWidget = () => {
             });
           }
           
+          return tooltip;
+        };
+        
+        // Show tooltip automatically on load
+        setTimeout(() => {
+          const tooltip = createTooltip();
+          
           // Auto close after 8 seconds
           setTimeout(() => {
             if (document.body.contains(tooltip)) {
               tooltip.remove();
             }
           }, 8000);
-          
-          // Also close tooltip when chat is opened
-          setTimeout(() => {
-            const chatBubbleElement = document.querySelector('df-messenger-chat-bubble button');
-            if (chatBubbleElement) {
-              chatBubbleElement.addEventListener('click', () => {
-                if (document.body.contains(tooltip)) {
-                  tooltip.remove();
-                }
-              });
-            }
-          }, 500);
         }, 4000); // Show tooltip after 4 seconds
+        
+        // Add hover functionality after a brief delay to ensure chat bubble is loaded
+        setTimeout(() => {
+          const chatBubbleElement = document.querySelector('df-messenger-chat-bubble button');
+          if (chatBubbleElement) {
+            // Track whether chat is open
+            let isChatOpen = false;
+            
+            // Add event to track when chat opens/closes
+            chatBubbleElement.addEventListener('click', () => {
+              isChatOpen = !isChatOpen;
+              document.querySelectorAll('.df-messenger-tooltip').forEach(el => el.remove());
+            });
+            
+            // Show tooltip on hover (only if chat is closed)
+            chatBubbleElement.addEventListener('mouseenter', () => {
+              if (!isChatOpen && !document.querySelector('.df-messenger-tooltip')) {
+                const tooltip = createTooltip();
+                
+                // Remove tooltip when mouse leaves button area
+                chatBubbleElement.addEventListener('mouseleave', function handleMouseLeave() {
+                  setTimeout(() => {
+                    if (document.body.contains(tooltip)) {
+                      tooltip.remove();
+                    }
+                  }, 1000); // Small delay so user can move mouse to tooltip
+                  chatBubbleElement.removeEventListener('mouseleave', handleMouseLeave);
+                });
+              }
+            });
+          }
+        }, 1000);
         
         console.log('New Dialogflow Messenger created successfully');
       };
