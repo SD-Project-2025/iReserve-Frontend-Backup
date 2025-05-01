@@ -107,7 +107,7 @@ const ChatbotWidget = () => {
           
           const tooltip = document.createElement('div');
           tooltip.className = 'df-messenger-tooltip';
-          tooltip.innerHTML = '<strong>Hey I am Resie!</strong> A chatbot for iReserve. How can I help you? <span class="close-tooltip">&times;</span>';
+          tooltip.innerHTML = 'Hey I am Resie! A chatbot for iReserve. How can I help you? <span class="close-tooltip">&times;</span>';
           document.body.appendChild(tooltip);
           
           console.log('Tooltip created and added to DOM');
