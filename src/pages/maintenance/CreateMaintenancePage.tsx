@@ -19,6 +19,7 @@ import {
   Box,
   Alert,
   CircularProgress,
+  Snackbar,
 } from "@mui/material"
 import { api } from "@/services/api"
 
@@ -33,10 +34,12 @@ const CreateMaintenancePage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+
   const [facilities, setFacilities] = useState<Facility[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   const [formData, setFormData] = useState({
     facility_id: location.state?.facilityId || "",
@@ -44,7 +47,7 @@ const CreateMaintenancePage = () => {
     description: "",
     priority: "medium",
     userType: user?.type,
-    user_id: 0
+    user_id: 0,
   })
 
   const [formErrors, setFormErrors] = useState({
@@ -59,12 +62,12 @@ const CreateMaintenancePage = () => {
         setLoading(true)
         setError(null)
 
-        const profile = await api.get("/auth/me")
+        const userProfile = await api.get("/auth/me")
         const user_id = user?.type === "resident"
-          ? profile.data.data.profile.resident_id
-          : profile.data.data.profile.staff_id
+          ? userProfile?.data.data.profile.resident_id
+          : userProfile?.data.data.profile.staff_id
 
-        setFormData(prev => ({ ...prev, user_id }))
+        setFormData((prev) => ({ ...prev, user_id }))
 
         const response = await api.get("/facilities")
         setFacilities(response.data.data)
@@ -77,42 +80,27 @@ const CreateMaintenancePage = () => {
     }
 
     fetchFacilities()
-  }, [user?.type])
-
-  const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-
-    if (formErrors[field as keyof typeof formErrors]) {
-      setFormErrors(prev => ({ ...prev, [field]: "" }))
-    }
-  }
+  }, [])
 
   const validateForm = () => {
+    let isValid = true
     const errors = {
       facility_id: "",
       title: "",
       description: "",
     }
 
-    let isValid = true
-
     if (!formData.facility_id) {
       errors.facility_id = "Please select a facility"
       isValid = false
     }
 
-    if (!formData.title.trim()) {
-      errors.title = "Please enter a title"
-      isValid = false
-    } else if (formData.title.trim().length < 3) {
+    if (!formData.title || formData.title.trim().length < 3) {
       errors.title = "Title must be at least 3 characters"
       isValid = false
     }
 
-    if (!formData.description.trim()) {
-      errors.description = "Please enter a description"
-      isValid = false
-    } else if (formData.description.trim().length < 10) {
+    if (!formData.description || formData.description.trim().length < 10) {
       errors.description = "Description must be at least 10 characters"
       isValid = false
     }
@@ -123,7 +111,6 @@ const CreateMaintenancePage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
     try {
@@ -131,13 +118,27 @@ const CreateMaintenancePage = () => {
       setError(null)
 
       await api.post("/maintenance", formData)
-      navigate("/maintenance")
+      setShowSuccessToast(true)
+      setTimeout(() => {
+        navigate("/maintenance")
+      }, 2000)
     } catch (err: any) {
       console.error("Error creating maintenance report:", err)
       setError(err.response?.data?.message || "Failed to create maintenance report. Please try again later.")
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleCloseToast = () => {
+    setShowSuccessToast(false)
   }
 
   return (
@@ -179,6 +180,7 @@ const CreateMaintenancePage = () => {
                     {formErrors.facility_id && <FormHelperText>{formErrors.facility_id}</FormHelperText>}
                   </FormControl>
                 </Grid>
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -189,6 +191,7 @@ const CreateMaintenancePage = () => {
                     helperText={formErrors.title}
                   />
                 </Grid>
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -201,6 +204,7 @@ const CreateMaintenancePage = () => {
                     helperText={formErrors.description}
                   />
                 </Grid>
+
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel id="priority-label">Priority</InputLabel>
@@ -216,6 +220,7 @@ const CreateMaintenancePage = () => {
                     </Select>
                   </FormControl>
                 </Grid>
+
                 <Grid item xs={12}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
                     <Button variant="outlined" onClick={() => navigate("/maintenance")}>
@@ -232,6 +237,21 @@ const CreateMaintenancePage = () => {
           )}
         </CardContent>
       </Card>
+
+      <Snackbar
+        open={showSuccessToast}
+        autoHideDuration={2000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseToast}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          Maintenance report submitted successfully!
+        </Alert>
+      </Snackbar>
     </section>
   )
 }
