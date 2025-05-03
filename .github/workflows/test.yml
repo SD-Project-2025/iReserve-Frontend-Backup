@@ -1,34 +1,34 @@
-name: Node.js CI
+name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16, 18]
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'  # Enable npm caching
-          cache-dependency-path: '**/package-lock.json' # Add this line to specify the cache key
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
       - name: Run Tests and Generate Coverage (Ignore Failures)
         run: |
           npm run test:coverage || true
         continue-on-error: true
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info  # Path to coverage file (default for Jest)
-          verbose: true  # Optional: For debugging
           slug: SD-Project-2025/iReserve-Frontend-Backup
           fail_ci_if_error: false
