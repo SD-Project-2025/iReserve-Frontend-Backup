@@ -60,8 +60,7 @@ const CreateMaintenancePage = () => {
         setLoading(true)
         setError(null)
         userProfile = await api.get("/auth/me")
-        formData.user_id = user?.type === "resident" ? userProfile.data.data.profile.resident_id : userProfile.data.data.profile.staff_id
-        console.log(formData.user_id)
+        formData.user_id = user?.type ==="resident" ? userProfile?.data.data.profile.resident_id : userProfile?.data.data.profile.staff_id
         const response = await api.get("/facilities")
         setFacilities(response.data.data)
       } catch (err) {
@@ -97,7 +96,7 @@ const CreateMaintenancePage = () => {
       errors.description = "Please enter a description"
       isValid = false
     }
-    console.log(formData.user_id)
+
     setFormErrors(errors)
     return isValid
   }
