@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
 import {
   Typography,
   Grid,
@@ -36,24 +37,31 @@ const CreateMaintenancePage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
-    facility_id: location.state?.facilityId || "",
-    title: "",
-    description: "",
-    priority: "medium",
-  })
+      facility_id: location.state?.facilityId || "",
+      title: "",
+      description: "",
+      priority: "medium",
+      userType: user?.type,
+      user_id: 0
+    })
+
   const [formErrors, setFormErrors] = useState({
     facility_id: "",
     title: "",
     description: "",
   })
+  let userProfile: any = null
 
   useEffect(() => {
     const fetchFacilities = async () => {
       try {
         setLoading(true)
         setError(null)
-
+        userProfile = await api.get("/auth/me")
+        formData.user_id = user?.type === "resident" ? userProfile.data.data.profile.resident_id : userProfile.data.data.profile.staff_id
+        console.log(formData.user_id)
         const response = await api.get("/facilities")
         setFacilities(response.data.data)
       } catch (err) {
@@ -89,7 +97,7 @@ const CreateMaintenancePage = () => {
       errors.description = "Please enter a description"
       isValid = false
     }
-
+    console.log(formData.user_id)
     setFormErrors(errors)
     return isValid
   }
