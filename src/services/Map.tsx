@@ -1,12 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-
-// Extend the Window interface to include the google property
-declare global {
-  interface Window {
-    google: typeof google;
-  }
-}
-
 import {
   Box,
   Typography,
@@ -29,41 +21,58 @@ import {
   Close,
 } from '@mui/icons-material';
 
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
 
 interface FacilityProps {
-  location: string;
+  facility_id?: number;
+  name?: string;
+  type?: string;
+  location?: string;
+  capacity?: number;
 }
 
 type TravelMode = 'driving' | 'walking' | 'bicycling' | 'transit';
 
-const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
+const LocationMap = ({ Facility }: { Facility?: FacilityProps }) => {
   const [origin, setOrigin] = useState<string>('current location');
   const [manualOrigin, setManualOrigin] = useState<string>('');
   const [recentLocations, setRecentLocations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [travelMode, setTravelMode] = useState<TravelMode>('driving');
-
   const [fullScreen, setFullScreen] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const MAP_API = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const MAP_API = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const DESTINATION = encodeURIComponent(Facility.location || '');
-
-  useEffect(() => {
- 
-
   
-  }, [origin, travelMode, DESTINATION, MAP_API]);
+  const destination = Facility?.location || 'Unknown Location';
+  const DESTINATION = encodeURIComponent(destination);
 
+  // Load recent locations from localStorage
   useEffect(() => {
     const savedLocations = localStorage.getItem('recentLocations');
-    if (savedLocations) setRecentLocations(JSON.parse(savedLocations));
+    if (savedLocations) {
+      try {
+        setRecentLocations(JSON.parse(savedLocations));
+      } catch (e) {
+        console.error('Failed to parse recent locations', e);
+      }
+    }
   }, []);
 
+  // Initialize Google Maps autocomplete
   useEffect(() => {
-    if (window.google && window.google.maps) {
-      const input = document.getElementById('location-autocomplete') as HTMLInputElement;
-      if (input) {
+    if (!Facility?.location) {
+      setError('Location information not available');
+      return;
+    }
+
+    const initAutocomplete = () => {
+      if (window.google?.maps?.places && document.getElementById('location-autocomplete')) {
+        const input = document.getElementById('location-autocomplete') as HTMLInputElement;
         autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
           types: ['geocode'],
         });
@@ -74,8 +83,24 @@ const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
           }
         });
       }
+    };
+
+    if (!window.google) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${MAP_API}&libraries=places`;
+      script.async = true;
+      script.onload = initAutocomplete;
+      document.body.appendChild(script);
+    } else {
+      initAutocomplete();
     }
-  }, []);
+
+    return () => {
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [MAP_API, Facility?.location]);
 
   const handleGetLocation = () => {
     setIsLoading(true);
@@ -113,11 +138,11 @@ const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
   };
 
   const handleShare = () => {
-    const url = `https://maps.google.com/maps?dir/?api=1&destination=${encodeURIComponent(Facility.location)}&origin=${origin}&travelmode=${travelMode}`;
+    const url = `https://maps.google.com/maps?dir/?api=1&destination=${DESTINATION}&origin=${origin}&travelmode=${travelMode}`;
     if (navigator.share) {
       navigator.share({
         title: 'Directions',
-        text: `Check out these directions to ${Facility.location}`,
+        text: `Check out these directions to ${Facility?.name || destination}`,
         url: url,
       }).catch((error) => {
         setError('Sharing failed: ' + error.message);
@@ -137,6 +162,19 @@ const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
   const handleCloseError = () => {
     setError('');
   };
+
+  if (!Facility?.location) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', mb: 2 }}>
+        <Typography variant="h6" gutterBottom>
+          View on Map
+        </Typography>
+        <Alert severity="warning">
+          Location information not available for this facility
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', mb: 2, position: 'relative' }}>
@@ -186,22 +224,34 @@ const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         <Tooltip title="Driving">
-          <IconButton onClick={() => setTravelMode('driving')} color={travelMode === 'driving' ? 'primary' : 'default'}>
+          <IconButton 
+            onClick={() => setTravelMode('driving')} 
+            color={travelMode === 'driving' ? 'primary' : 'default'}
+          >
             <DirectionsCar />
           </IconButton>
         </Tooltip>
         <Tooltip title="Walking">
-          <IconButton onClick={() => setTravelMode('walking')} color={travelMode === 'walking' ? 'primary' : 'default'}>
+          <IconButton 
+            onClick={() => setTravelMode('walking')} 
+            color={travelMode === 'walking' ? 'primary' : 'default'}
+          >
             <DirectionsWalk />
           </IconButton>
         </Tooltip>
         <Tooltip title="Biking">
-          <IconButton onClick={() => setTravelMode('bicycling')} color={travelMode === 'bicycling' ? 'primary' : 'default'}>
+          <IconButton 
+            onClick={() => setTravelMode('bicycling')} 
+            color={travelMode === 'bicycling' ? 'primary' : 'default'}
+          >
             <DirectionsBike />
           </IconButton>
         </Tooltip>
         <Tooltip title="Transit">
-          <IconButton onClick={() => setTravelMode('transit')} color={travelMode === 'transit' ? 'primary' : 'default'}>
+          <IconButton 
+            onClick={() => setTravelMode('transit')} 
+            color={travelMode === 'transit' ? 'primary' : 'default'}
+          >
             <Train />
           </IconButton>
         </Tooltip>
@@ -214,14 +264,11 @@ const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
           height="100%"
           frameBorder="0"
           style={{ border: 0 }}
-          src={`https://www.google.com/maps/embed/v1/directions?key=${MAP_API}&destination=${encodeURIComponent(
-            Facility.location || ''
-          )}&origin=${origin}&mode=${travelMode}`}
+          src={`https://www.google.com/maps/embed/v1/directions?key=${MAP_API}&destination=${DESTINATION}&origin=${origin}&mode=${travelMode}`}
           allowFullScreen
         />
 
         <Box sx={{ position: 'absolute', top: 10, right: 10, display: 'flex', gap: 1 }}>
-         
           <Tooltip title="Share Directions">
             <IconButton onClick={handleShare} sx={{ bgcolor: 'background.paper' }}>
               <Share />
@@ -234,8 +281,6 @@ const LocationMap = ({ Facility }: { Facility: FacilityProps }) => {
           </Tooltip>
         </Box>
       </Box>
-
-      
 
       <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError}>
         <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
