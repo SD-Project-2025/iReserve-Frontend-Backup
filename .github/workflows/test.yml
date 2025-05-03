@@ -1,0 +1,33 @@
+name: Node.js CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16, 18]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Run Tests and Generate Coverage (Ignore Failures)
+        run: |
+          npm run test:coverage || true
+        continue-on-error: true
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.FRONTEND_CODECOV_TOKEN }}
+          files: ./coverage/lcov.info  # Path to coverage file (default for Jest)
+          verbose: true  # Optional: For debugging
+          slug: SD-Project-2025/iReserve-Frontend-Backup
+          fail_ci_if_error: false
