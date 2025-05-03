@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
@@ -20,6 +19,7 @@ import {
   Box,
   Alert,
   CircularProgress,
+  Snackbar,
 } from "@mui/material"
 import { api } from "@/services/api"
 
@@ -37,15 +37,16 @@ const CreateMaintenancePage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const { user } = useAuth()
   const [formData, setFormData] = useState({
-      facility_id: location.state?.facilityId || "",
-      title: "",
-      description: "",
-      priority: "medium",
-      userType: user?.type,
-      user_id: 0
-    })
+    facility_id: location.state?.facilityId || "",
+    title: "",
+    description: "",
+    priority: "medium",
+    userType: user?.type,
+    user_id: 0
+  })
 
   const [formErrors, setFormErrors] = useState({
     facility_id: "",
@@ -60,7 +61,10 @@ const CreateMaintenancePage = () => {
         setLoading(true)
         setError(null)
         userProfile = await api.get("/auth/me")
-        formData.user_id = user?.type ==="resident" ? userProfile?.data.data.profile.resident_id : userProfile?.data.data.profile.staff_id
+        formData.user_id = user?.type === "resident"
+          ? userProfile?.data.data.profile.resident_id
+          : userProfile?.data.data.profile.staff_id
+
         const response = await api.get("/facilities")
         setFacilities(response.data.data)
       } catch (err) {
@@ -82,6 +86,8 @@ const CreateMaintenancePage = () => {
       description: "",
     }
 
+    const titleRegex = /^[a-zA-Z0-9\s.,!?'"-]{5,100}$/
+
     if (!formData.facility_id) {
       errors.facility_id = "Please select a facility"
       isValid = false
@@ -90,10 +96,22 @@ const CreateMaintenancePage = () => {
     if (!formData.title) {
       errors.title = "Please enter a title"
       isValid = false
+    } else if (formData.title.trim().length < 5) {
+      errors.title = "Title must be at least 5 characters"
+      isValid = false
+    } else if (formData.title.trim().length > 20) {
+      errors.title = "Title must be under 100 characters"
+      isValid = false
+    } else if (!titleRegex.test(formData.title.trim())) {
+      errors.title = "Title contains invalid characters"
+      isValid = false
     }
 
     if (!formData.description) {
       errors.description = "Please enter a description"
+      isValid = false
+    } else if (formData.description.length < 10) {
+      errors.description = "Description must be at least 10 characters"
       isValid = false
     }
 
@@ -111,7 +129,10 @@ const CreateMaintenancePage = () => {
       setError(null)
 
       await api.post("/maintenance", formData)
-      navigate("/maintenance")
+      setShowSuccessToast(true)
+      setTimeout(() => {
+        navigate("/maintenance")
+      }, 2000)
     } catch (err: any) {
       console.error("Error creating maintenance report:", err)
       setError(err.response?.data?.message || "Failed to create maintenance report. Please try again later.")
@@ -125,6 +146,10 @@ const CreateMaintenancePage = () => {
       ...prev,
       [field]: value,
     }))
+  }
+
+  const handleCloseToast = () => {
+    setShowSuccessToast(false)
   }
 
   return (
@@ -163,7 +188,9 @@ const CreateMaintenancePage = () => {
                         </MenuItem>
                       ))}
                     </Select>
-                    {formErrors.facility_id && <FormHelperText>{formErrors.facility_id}</FormHelperText>}
+                    {formErrors.facility_id && (
+                      <FormHelperText>{formErrors.facility_id}</FormHelperText>
+                    )}
                   </FormControl>
                 </Grid>
                 <Grid item xs={12}>
@@ -219,6 +246,17 @@ const CreateMaintenancePage = () => {
           )}
         </CardContent>
       </Card>
+
+      <Snackbar
+        open={showSuccessToast}
+        autoHideDuration={2000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseToast} severity="success" sx={{ width: "100%" }}>
+          Maintenance report submitted successfully!
+        </Alert>
+      </Snackbar>
     </section>
   )
 }
