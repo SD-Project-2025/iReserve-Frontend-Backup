@@ -19,13 +19,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Stack,
+  Snackbar,
   List,
   ListItem,
   ListItemText,
   ListItemAvatar,
   Avatar,
   Paper,
-  Stack,
 } from "@mui/material"
 import {
   CalendarMonth as CalendarIcon,
@@ -35,10 +36,15 @@ import {
   Person as PersonIcon,
   Edit as EditIcon,
   Cancel as CancelIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
 } from "@mui/icons-material"
 import { api } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
+import { AxiosError } from "axios"
 import LocationMap from "@/services/Map"
+
 interface Organizer {
   staff_id: number
   employee_id: string
@@ -46,37 +52,39 @@ interface Organizer {
   name?: string
 }
 
-interface EventRegistration {
-  status: string
-  payment_status: string
-  registration_date?: string
+interface Facility {
+  facility_id: number
+  name: string
+  type: string
+  location: string
+  capacity: number
 }
 
 interface Event {
   event_id: number
   title: string
   description: string
-  facility: {
-    facility_id: number
-    name: string
-    location: string
-  }
+  facility: Facility
   start_date: string
   end_date: string
   start_time: string
   end_time: string
   status: string
   image_url: string
-  max_attendees: number
-  current_attendees: number
-  is_registered: boolean
-  organizer?: Organizer | string
-  attendees?: Array<{
-    id: number
+  capacity: number
+  registrations: number
+  is_public: boolean
+  registration_deadline?: string
+  fee?: number
+  organizer?: Organizer
+  is_registered?: boolean
+  current_attendees?: number
+  max_attendees?: number
+  facilityLoc: {
+    facility_id: number
     name: string
-    picture?: string
-  }>
-  registration?: EventRegistration
+    location: string
+  }
 }
 
 const EventDetailsPage = () => {
@@ -89,40 +97,69 @@ const EventDetailsPage = () => {
   const [actionLoading, setActionLoading] = useState(false)
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-  const [showAttendees, setShowAttendees] = useState(false)
- 
+  const [success, setSuccess] = useState<string | null>(null)
+  
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const eventResponse = await api.get(`/events/${id}`);
-      let isRegistered = false;
   
-      if (user) {
+      // Get user profile
+      const userProfileResponse = await api.get("/auth/me");
+      const userProfile = userProfileResponse.data;
+      const residentID = userProfile?.data?.profile?.resident_id;
+  
+      // Fetch event details
+      const eventResponse = await api.get(`/events/${id}`);
+      const eventData = eventResponse.data.data;
+  
+      // Default registration status
+      let registrationStatus = {
+        isRegistered: false,
+        status: 'not_registered',
+        paymentStatus: null,
+        notes: null,
+        registrationDate: null
+      };
+  
+      // Only check registration status if user is resident and has residentID
+      if (user?.type === 'resident' && residentID) {
         try {
-          const regResponse = await api.get(`/events/${id}/registration-status`);
-          // Ensure this endpoint checks for ACTIVE registrations only
-          isRegistered = regResponse.data.data.registered; 
+          const statusResponse = await api.get(`/events/${id}/status/${residentID}`);
+          if (statusResponse.data?.data) {
+            registrationStatus = {
+              isRegistered: statusResponse.data.data.status !== 'cancelled',
+              status: statusResponse.data.data.status,
+              paymentStatus: statusResponse.data.data.paymentStatus,
+              notes: statusResponse.data.data.notes,
+              registrationDate: statusResponse.data.data.registrationDate
+            };
+          }
         } catch (err) {
-          if ((err as any)?.response?.status !== 404) { // Ignore "not found" errors
+          const axiosError = err as AxiosError;
+          // Only log if it's not a 404 error
+          if (axiosError.response?.status !== 404) {
+            console.error("Failed to check registration status:", err);
             setError("Failed to check registration status");
           }
         }
       }
-  
-      const eventData = eventResponse.data.data;
-      const location = eventData.facility?.location || "Unknown Location";
+
+      const location = eventData.facilityloc?.location || "Unknown Location";
       setEvent({
         ...eventData,
-        is_registered: isRegistered,
-        facility: {
-          ...eventData.facility,
+        is_registered: registrationStatus.isRegistered,
+        current_attendees: eventData.registrations,
+        max_attendees: eventData.capacity,
+        registrationStatus, // include full status object if needed
+        facilityLoc: {
+          ...eventData.facilityloc,
           location: location.trim() ? location : "Unknown Location"
         }
       });
     } catch (err) {
       setError("Failed to load event details");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -136,7 +173,7 @@ const EventDetailsPage = () => {
     try {
       setActionLoading(true)
       const response = await api.post(`/events/${id}/register`)
-      
+
       if (response.data.message?.includes("Already registered")) {
         await fetchEventDetails()
         return
@@ -144,7 +181,10 @@ const EventDetailsPage = () => {
 
       await fetchEventDetails()
       setConfirmDialogOpen(false)
+      setSuccess("Successfully registered for the event!")
+      setTimeout(() => setSuccess(null), 5000)
     } catch (err: any) {
+      setSuccess(null)
       setError(err.response?.data?.message || "Registration failed. Please try again.")
     } finally {
       setActionLoading(false)
@@ -153,23 +193,32 @@ const EventDetailsPage = () => {
 
   const handleCancelRegistration = async () => {
     try {
-      setActionLoading(true);
-      // Use PUT method and the correct endpoint structure
-      await api.put(`/events/${id}/cancel-registration`);
-      await fetchEventDetails();
-      setCancelDialogOpen(false);
+      setActionLoading(true)
+      await api.put(`/events/${id}/cancel-registration`)
+      await fetchEventDetails()
+      setCancelDialogOpen(false)
+      setSuccess("Registration cancelled successfully!")
+      setTimeout(() => setSuccess(null), 5000)
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to cancel registration. Please try again.");
+      setSuccess(null)
+      const errorMessage = err.response?.data?.message || "Failed to cancel registration. Please try again."
+      setError(errorMessage)
+
+      if (errorMessage.includes("not registered") || errorMessage.includes("already cancelled")) {
+        setCancelDialogOpen(false)
+      }
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
   const handleCancelEvent = async () => {
     try {
       setActionLoading(true)
-      await api.patch(`/events/${id}/cancel-registration`)
+      await api.delete(`/events/${id}`)
       await fetchEventDetails()
+      setSuccess("Event cancelled successfully!")
+      setTimeout(() => setSuccess(null), 5000)
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to cancel the event. Please try again.")
     } finally {
@@ -190,27 +239,88 @@ const EventDetailsPage = () => {
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate)
     const end = new Date(endDate)
-    return start.toDateString() === end.toDateString() 
+    return start.toDateString() === end.toDateString()
       ? start.toLocaleDateString()
       : `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`
   }
 
+  const formatTimeRange = (startTime: string, endTime: string) => {
+    return `${startTime} - ${endTime}`
+  }
+
   const renderOrganizer = () => {
     if (!event?.organizer) return "Community Staff"
-    if (typeof event.organizer === 'string') return event.organizer
-    return event.organizer.name 
-      ? `${event.organizer.name} (${event.organizer.position})`
-      : `Staff #${event.organizer.employee_id}`
+    return `Staff #${event.organizer.employee_id} (${event.organizer.position})`
+  }
+
+  const renderUserStatus = () => {
+    if (!user) {
+      return (
+        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
+          Please sign in to view your registration status
+        </Alert>
+      )
+    }
+
+    if (user.type === 'staff') {
+      return (
+        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
+          Staff members cannot register for events
+        </Alert>
+      )
+    }
+
+    if (event?.is_registered) {
+      return (
+        <Alert 
+          icon={<CheckCircleIcon fontSize="inherit" />} 
+          severity="success"
+          sx={{ mb: 2 }}
+        >
+          You are registered for this event
+        </Alert>
+      )
+    } else {
+      return (
+        <Alert 
+          icon={<WarningIcon fontSize="inherit" />} 
+          severity="info"
+          sx={{ mb: 2 }}
+        >
+          You are not registered for this event
+        </Alert>
+      )
+    }
   }
 
   const renderRegistrationButtons = () => {
     if (!event) return null
 
+    // If user is staff, don't show registration buttons
+    if (user?.type === 'staff') {
+      return null
+    }
+
+    // If no user is logged in
+    if (!user) {
+      return (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => navigate('/login')}
+          fullWidth
+          sx={{ mb: 2 }}
+        >
+          Sign in to register
+        </Button>
+      )
+    }
+
     switch (event.status.toLowerCase()) {
       case "upcoming":
-        if (event.current_attendees >= event.max_attendees) {
+        if ((event.current_attendees ?? 0) >= (event.max_attendees ?? 0)) {
           return (
-            <Alert severity="error">
+            <Alert severity="error" icon={<WarningIcon />}>
               This event is fully booked.
             </Alert>
           )
@@ -218,48 +328,49 @@ const EventDetailsPage = () => {
 
         return (
           <Stack spacing={2}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PersonIcon />}
-              onClick={() => setConfirmDialogOpen(true)}
-              disabled={actionLoading || user?.type !== 'resident'}
-              fullWidth
-            >
-              {actionLoading ? <CircularProgress size={24} /> : 
-               user?.type === 'resident' ? "Register for Event" : "Sign in as resident to register"}
-            </Button>
-            
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<CancelIcon />}
-              onClick={() => setCancelDialogOpen(true)}
-              disabled={actionLoading}
-              fullWidth
-            >
-              {actionLoading ? <CircularProgress size={24} /> : "Cancel Registration"}
-            </Button>
+            {!event.is_registered ? (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<PersonIcon />}
+                onClick={() => setConfirmDialogOpen(true)}
+                disabled={actionLoading}
+                fullWidth
+              >
+                {actionLoading ? <CircularProgress size={24} /> : "Register for Event"}
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<CancelIcon />}
+                onClick={() => setCancelDialogOpen(true)}
+                disabled={actionLoading}
+                fullWidth
+              >
+                {actionLoading ? <CircularProgress size={24} /> : "Cancel Registration"}
+              </Button>
+            )}
           </Stack>
         )
 
       case "ongoing":
         return (
-          <Alert severity="warning">
+          <Alert severity="warning" icon={<WarningIcon />}>
             This event is currently ongoing. Registration is closed.
           </Alert>
         )
 
       case "completed":
         return (
-          <Alert severity="info">
+          <Alert severity="info" icon={<InfoIcon />}>
             This event has already taken place.
           </Alert>
         )
 
       case "cancelled":
         return (
-          <Alert severity="error">
+          <Alert severity="error" icon={<WarningIcon />}>
             This event has been cancelled.
           </Alert>
         )
@@ -289,7 +400,7 @@ const EventDetailsPage = () => {
     return <Alert severity="info">Event not found.</Alert>
   }
 
-  const attendancePercentage = (event.current_attendees / event.max_attendees) * 100
+  const attendancePercentage = ((event.current_attendees ?? 0) / (event.max_attendees ?? 1)) * 100
   const isStaff = user?.type === "staff"
 
   return (
@@ -332,7 +443,6 @@ const EventDetailsPage = () => {
               <Typography variant="h6" gutterBottom>
                 Event Details
               </Typography>
-            
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <LocationIcon color="action" sx={{ mr: 1 }} />
                 <Typography>
@@ -348,9 +458,26 @@ const EventDetailsPage = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <TimeIcon color="action" sx={{ mr: 1 }} />
                 <Typography>
-                  {event.start_time} - {event.end_time}
+                  {formatTimeRange(event.start_time, event.end_time)}
                 </Typography>
               </Box>
+
+              {event.registration_deadline && (
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <CalendarIcon color="action" sx={{ mr: 1 }} />
+                  <Typography>
+                    Registration deadline: {new Date(event.registration_deadline).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              )}
+
+              {event.fee && event.fee > 0 && (
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Typography color="text.secondary">
+                    Fee: ${event.fee.toFixed(2)}
+                  </Typography>
+                </Box>
+              )}
 
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <PersonIcon color="action" sx={{ mr: 1 }} />
@@ -383,42 +510,13 @@ const EventDetailsPage = () => {
                   </Typography>
                 </Box>
               </Box>
-
-              {isStaff && event.attendees && event.attendees.length > 0 && (
-                <>
-                  <Divider sx={{ my: 3 }} />
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                    <Typography variant="h6">Attendees</Typography>
-                    <Button onClick={() => setShowAttendees(!showAttendees)}>
-                      {showAttendees ? "Hide Attendees" : "Show Attendees"}
-                    </Button>
-                  </Box>
-
-                  {showAttendees && (
-                    <Paper sx={{ maxHeight: 300, overflow: "auto", p: 2 }}>
-                      <List>
-                        {event.attendees.map((attendee) => (
-                          <ListItem key={attendee.id}>
-                            <ListItemAvatar>
-                              <Avatar src={attendee.picture} alt={attendee.name}>
-                                {attendee.name.charAt(0)}
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText primary={attendee.name} />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </Paper>
-                  )}
-                </>
-              )}
             </CardContent>
           </Card>
-             <Box sx={{ display: "flex", alignItems: "center", mb:2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb:2 }}>
                                    
-                                    <LocationMap Facility={event.facility} />
-          
-                                  </Box>
+                                   <LocationMap Facility={event.facilityLoc} />
+         
+                                 </Box>
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -428,6 +526,7 @@ const EventDetailsPage = () => {
                 Registration
               </Typography>
 
+              {renderUserStatus()}
               {renderRegistrationButtons()}
 
               <Divider sx={{ my: 3 }} />
@@ -491,6 +590,11 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to register for "{event.title}"? You can cancel your registration later if needed.
           </DialogContentText>
+          {event.fee && event.fee > 0 && (
+            <DialogContentText sx={{ mt: 2, fontWeight: 'bold' }}>
+              Note: This event has a fee of ${event.fee.toFixed(2)} that will need to be paid.
+            </DialogContentText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialogOpen(false)} disabled={actionLoading}>
@@ -509,6 +613,11 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to cancel your registration for "{event.title}"?
           </DialogContentText>
+          {event.fee && event.fee > 0 && (
+            <DialogContentText sx={{ mt: 2, color: 'warning.main' }}>
+              Note: Cancelling may affect any fees you've already paid.
+            </DialogContentText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCancelDialogOpen(false)} disabled={actionLoading}>
@@ -519,6 +628,18 @@ const EventDetailsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={5000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
     </section>
   )
 }
