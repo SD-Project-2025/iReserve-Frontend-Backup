@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Typography, Grid, Button, Box, Card, CardContent, Alert, ButtonGroup, Tabs, Tab } from "@mui/material"
+import { Typography, Grid, Button, Box, Card, CardContent, Alert, ButtonGroup, Tabs, Tab, Chip } from "@mui/material"
 import {
   CalendarMonth as CalendarIcon,
   SportsTennis as SportsIcon,
@@ -359,30 +359,65 @@ const StaffDashboard = () => {
 
           {/* Bookings Tab */}
           <Box role="tabpanel" hidden={tabValue !== 0} id="tabpanel-0" aria-labelledby="tab-0" sx={{ mt: 2 }}>
-            {tabValue === 0 && (
-              <RecentActivityList
-                title="Recent Booking Requests"
-                //@ts-ignore
-                activities={bookings.filter((b) => b.rawData.status === "pending")}
-                emptyMessage="No pending booking requests"
-                loading={loading.bookings}
-                viewAllLink="/admin/bookings"
-                renderActions={(booking) => (
-                  <ButtonGroup size="small" variant="outlined">
-                    <Button color="success" onClick={() => handleUpdateBookingStatus(booking.id, "approved")}>
-                      Approve
-                    </Button>
-                    <Button color="error" onClick={() => handleUpdateBookingStatus(booking.id, "rejected")}>
-                      Reject
-                    </Button>
-                    <Button color="primary" onClick={() => navigate(`/admin/bookings/${booking.id}`)}>
-                      View
-                    </Button>
-                  </ButtonGroup>
-                )}
-              />
-            )}
+  {tabValue === 0 && (
+    <RecentActivityList
+      title="Recent Booking Requests"
+      activities={bookings
+        //@ts-ignore
+        .filter((b) => b.rawData.status === "pending")
+        .map((b) => ({
+          //@ts-ignore
+          id: b.booking_id,
+          //@ts-ignore
+          title: b.facility?.name || "Facility Booking",
+          //@ts-ignore
+          subtitle: `${b.purpose} (${b.attendees} attendees)`,
+          //@ts-ignore
+          date: `${new Date(b.date).toLocaleDateString()} • ${b.start_time} - ${b.end_time}`,
+          rawData: b,
+        }))}
+      emptyMessage="No pending booking requests"
+      loading={loading.bookings}
+      viewAllLink="/admin/bookings"
+      renderActions={(booking) => {
+        const status = booking.rawData.status;
+        const color = getStatusColor(status);
+
+        return (
+          <Box display="flex" flexDirection="column" alignItems="flex-start" gap={1}>
+            <Chip
+              label={status}
+              color={color}
+              size="small"
+              sx={{ textTransform: "capitalize", fontWeight: 500 }}
+            />
+            <ButtonGroup size="small" variant="outlined">
+              <Button
+                color="success"
+                onClick={() => handleUpdateBookingStatus(booking.id, "approved")}
+              >
+                Approve
+              </Button>
+              <Button
+                color="error"
+                onClick={() => handleUpdateBookingStatus(booking.id, "rejected")}
+              >
+                Reject
+              </Button>
+              <Button
+                color="primary"
+                onClick={() => navigate(`/admin/bookings/${booking.id}`)}
+              >
+                View
+              </Button>
+            </ButtonGroup>
           </Box>
+        );
+      }}
+    />
+  )}
+</Box>
+
 
           {/* Facilities Tab */}
           <Box role="tabpanel" hidden={tabValue !== 1} id="tabpanel-1" aria-labelledby="tab-1" sx={{ mt: 2 }}>

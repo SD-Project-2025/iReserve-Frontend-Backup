@@ -672,6 +672,14 @@ const ResidentDashboard = () => {
   
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
+      case "scheduled":
+        return "warning"
+      case "resolved":
+        return "success"
+      case "reported":
+        return "info"
+      case "in-progress":
+        return "warning"
       case "approved":
       case "completed":
       case "open":
@@ -975,38 +983,52 @@ const bookingDates = bookings
   
         {/* Recent Bookings */}
         <Grid item xs={12} md={6}>
-          <RecentActivityList
-            title="Recent Bookings"
-            activities={bookings.map(b => ({
-              id: b.booking_id,
-              title: b.facility?.name || "Facility Booking",
-              subtitle: `${b.purpose} (${b.attendees} attendees)`,
-              date: `${new Date(b.date).toLocaleDateString()} • ${b.start_time} - ${b.end_time}`,
-              status: b.status,
-              statusColor: getStatusColor(b.status),
-              rawData: b,
-            }))}
-            emptyMessage="No bookings found"
-            loading={loading.bookings}
-            viewAllLink="/bookings"
-            renderActions={(booking) => (
-              (booking.rawData.status === "approved" || booking.rawData.status === "pending") ? (
-                <ButtonGroup size="small" variant="outlined">
-                  <Button color="primary" onClick={() => navigate(`/bookings/${booking.id}`)}>
-                    View
-                  </Button>
-                  <Button
-                    color="error"
-                    onClick={() => handleCancelBooking(booking.id)}
-                    disabled={booking.rawData.status === "cancelled"}
-                  >
-                    Cancel
-                  </Button>
-                </ButtonGroup>
-              ) : null
-            )}
+  <RecentActivityList
+    title="Recent Bookings"
+    activities={bookings.map(b => ({
+      id: b.booking_id,
+      title: b.facility?.name || "Facility Booking",
+      subtitle: `${b.purpose} (${b.attendees} attendees)`,
+      date: `${new Date(b.date).toLocaleDateString()} • ${b.start_time} - ${b.end_time}`,
+      rawData: b, // keep full object for use in renderActions
+    }))}
+    emptyMessage="No bookings found"
+    loading={loading.bookings}
+    viewAllLink="/bookings"
+    renderActions={(booking) => {
+      const status = booking.rawData.status;
+      const color = getStatusColor(status);
+
+      return (
+        <Box display="flex" flexDirection="column" alignItems="flex-start" gap={1}>
+          <Chip
+            label={status}
+            color={color}
+            size="small"
+            sx={{ textTransform: "capitalize", fontWeight: 500 }}
           />
-        </Grid>
+          {(status === "approved" || status === "pending") && (
+            <ButtonGroup size="small" variant="outlined">
+              <Button
+                color="primary"
+                onClick={() => navigate(`/bookings/${booking.id}`)}
+              >
+                View
+              </Button>
+              <Button
+                color="error"
+                onClick={() => handleCancelBooking(booking.id)}
+                disabled={status === "cancelled"}
+              >
+                Cancel
+              </Button>
+            </ButtonGroup>
+          )}
+        </Box>
+      );
+    }}
+  />
+</Grid>
 
        {/* Calendar View */}
        <Grid item xs={12} md={6}>
@@ -1072,19 +1094,39 @@ const bookingDates = bookings
   
         {/* Maintenance Reports */}
         <Grid item xs={12} md={6}>
-          <RecentActivityList
-            title="Maintenance Reports"
-            activities={maintenanceReports}
-            emptyMessage="No maintenance reports"
-            loading={loading.maintenance}
-            viewAllLink="/maintenance"
-            renderActions={(report) => (
-              <Button size="small" variant="outlined" onClick={() => navigate(`/maintenance/${report.id}`)}>
-                View Details
-              </Button>
-            )}
+  <RecentActivityList
+    title="Maintenance Reports"
+    activities={maintenanceReports.map((report) => ({
+      id: report.id,
+      title: report.title,
+      subtitle: report.description || "No description",
+      date: report.date || "", // Optional date field
+      rawData: report,
+    }))}
+    emptyMessage="No maintenance reports"
+    loading={loading.maintenance}
+    viewAllLink="/maintenance"
+    renderActions={(report) => {
+      const status = report.rawData.status; // Extract status
+      const statusColor = getStatusColor(status); // Get status color manually
+
+      return (
+        <Box display="flex" flexDirection="column" alignItems="flex-start" gap={1}>
+          <Chip
+            label={status}
+            color={statusColor}
+            size="small"
+            sx={{ textTransform: "capitalize", fontWeight: 500 }}
           />
-        </Grid>
+          <Button size="small" variant="outlined" onClick={() => navigate(`/maintenance/${report.id}`)}>
+            View Details
+          </Button>
+        </Box>
+      );
+    }}
+  />
+</Grid>
+
       </Grid>
 
       {/* Add the chatbot widget */}
