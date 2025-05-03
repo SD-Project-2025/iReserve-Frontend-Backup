@@ -539,7 +539,6 @@ const EventDetailsPage = () => {
               >
                 View Facility
               </Button>
-
               <Button variant="outlined" onClick={() => navigate("/events")} fullWidth>
                 Back to Events
               </Button>
