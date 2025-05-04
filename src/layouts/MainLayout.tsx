@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import {
   AppBar,
@@ -43,6 +43,7 @@ import {
 } from "@mui/icons-material"
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
+import { api } from "@/services/api"
 
 //const drawerWidth = 260
 
@@ -87,6 +88,31 @@ const MainLayout = () => {
       setMobileOpen(false)
     }
   }
+
+  const getUnreadNotificationsCount = async () => {
+    try {
+      const response = await api.get("/notifications", {
+        params: { read: "false" }, // Fetch only unread notifications
+      })
+      return response.data.data.length // Return the number of unread notifications
+    } catch (error) {
+      console.error("Error fetching unread notifications:", error)
+      return 0 // Return 0 if there's an error
+    }
+  }
+
+  const [newNotificationsCount, setNewNotificationsCount] = useState<number>(0)
+
+  // Fetch notifications count on component mount
+  const fetchNotificationsCount = async () => {
+    const count = await getUnreadNotificationsCount() // Call the reusable function
+    setNewNotificationsCount(count) // Update the state with the count
+  }
+
+  // Fetch notifications when the component mounts
+  useEffect(() => {
+    fetchNotificationsCount()
+  }, [])
 
   const menuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
@@ -262,7 +288,7 @@ const MainLayout = () => {
               onClick={() => navigate("/notifications")}
               sx={{ mr: 1 }}
             >
-              <Badge badgeContent={3} color="error">
+              <Badge badgeContent={newNotificationsCount} color="error">
                 <NotificationsIcon />
               </Badge>
             </IconButton>

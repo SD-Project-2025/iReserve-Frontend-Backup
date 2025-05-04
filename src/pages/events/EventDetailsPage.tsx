@@ -168,15 +168,25 @@ const EventDetailsPage = () => {
     try {
       setActionLoading(true)
       const response = await api.post(`/events/${id}/register`)
-
+  
       if (response.data.message?.includes("Already registered")) {
         await fetchEventDetails()
         return
       }
-
+  
       await fetchEventDetails()
       setConfirmDialogOpen(false)
       setSuccess("Successfully registered for the event!")
+      
+      // Sending a notification for successful registration
+      await api.post("/notifications", {
+        title: "Event Registration",
+        message: `You have successfully registered for the event ${event?.title}!`,
+        type: "event",
+        related_id: id,
+        related_type: "event",
+      })
+  
       setTimeout(() => setSuccess(null), 5000)
     } catch (err: any) {
       setSuccess(null)
@@ -185,6 +195,7 @@ const EventDetailsPage = () => {
       setActionLoading(false)
     }
   }
+  
 
   const handleCancelRegistration = async () => {
     try {
@@ -193,12 +204,22 @@ const EventDetailsPage = () => {
       await fetchEventDetails()
       setCancelDialogOpen(false)
       setSuccess("Registration cancelled successfully!")
+  
+      // Sending a notification for canceled registration
+      await api.post("/notifications", {
+        title: "Event Registration Cancelled",
+        message: `You have successfully cancelled your registration for the event ${event?.title}.`,
+        type: "event",
+        related_id: id,
+        related_type: "event",
+      })
+  
       setTimeout(() => setSuccess(null), 5000)
     } catch (err: any) {
       setSuccess(null)
       const errorMessage = err.response?.data?.message || "Failed to cancel registration. Please try again."
       setError(errorMessage)
-
+  
       if (errorMessage.includes("not registered") || errorMessage.includes("already cancelled")) {
         setCancelDialogOpen(false)
       }
@@ -213,6 +234,13 @@ const EventDetailsPage = () => {
       await api.delete(`/events/${id}`)
       await fetchEventDetails()
       setSuccess("Event cancelled successfully!")
+      await api.post("/notifications", {
+        title: "Event Cancelled",
+        message: `You have successfully cancelled your the event ${event?.title}.`,
+        type: "event",
+        related_id: id,
+        related_type: "event",
+      })
       setTimeout(() => setSuccess(null), 5000)
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to cancel the event. Please try again.")

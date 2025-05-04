@@ -130,6 +130,13 @@ const CreateMaintenancePage = () => {
 
       await api.post("/maintenance", formData)
       setShowSuccessToast(true)
+      await api.post("/notifications", {
+        title: "Report Submitted",
+        message: `You have successfully submitted your reportt ${formData?.title}.`,
+        type: "event",
+        related_id: formData.facility_id,
+        related_type: "event",
+      })
       setTimeout(() => {
         navigate("/maintenance")
       }, 2000)
