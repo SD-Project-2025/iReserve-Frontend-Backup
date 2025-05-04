@@ -37,11 +37,10 @@ import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ManageNotifications from "./pages/admin/ManageNotifiations"  
 import EditEvent from "./components/Events/EditEvent"
 import ViewUser from "./components/admin/ViewUser"
-import AddFacility from "./pages/admin/AddFacility";
-
 
 //Landing Page
 import LandingPage from "./LandingPage"
+import ExportPdfPage from "./pages/admin/ExportPdfPage"
 // Protected route component
 //@ts-ignore
 const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRole?: any }) => {
@@ -109,6 +108,7 @@ function App() {
         <Route path="/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/export-pdf" element={<ExportPdfPage />} />
       </Route>
 
       {/* Admin Routes */}
@@ -120,12 +120,13 @@ function App() {
         }
       >
         <Route path="/admin/facilities" element={<ManageFacilitiesPage />} />
+
         <Route path="/admin/bookings" element={<ManageBookingsPage />} />
         <Route path="/admin/bookings/:id" element={<BookingDetailsPage />} />
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
-        <Route path="/admin/facilities/create" element={<AddFacility />} />
+        <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/users/:id"element={<ViewUser />} />

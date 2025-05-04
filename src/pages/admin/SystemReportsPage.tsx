@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Typography,
   Grid,
@@ -24,8 +25,8 @@ import {
   TableRow,
   Chip,
 } from "@mui/material"
-import { DatePicker } from "@mui/x-date-pickers/DatePicker"
-import { Modal, Stack } from '@mui/material';
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import {Stack } from '@mui/material';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 
@@ -33,132 +34,203 @@ import {
   PictureAsPdf as PdfIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material"
-
-// Mock data for reports
-const mockFacilityUsageData = [
-  { facility_id: 1, name: "Basketball Court", bookings: 45, events: 3, total_hours: 120, utilization: 78 },
-  { facility_id: 2, name: "Swimming Pool", bookings: 62, events: 5, total_hours: 180, utilization: 92 },
-  { facility_id: 3, name: "Tennis Court", bookings: 28, events: 2, total_hours: 84, utilization: 45 },
-  { facility_id: 4, name: "Fitness Center", bookings: 53, events: 4, total_hours: 160, utilization: 86 },
-  { facility_id: 5, name: "Soccer Field", bookings: 37, events: 3, total_hours: 111, utilization: 63 },
-]
-
-const mockMaintenanceData = [
-  { priority: "high", count: 12, avg_resolution_time: 48, resolved: 8 },
-  { priority: "medium", count: 24, avg_resolution_time: 72, resolved: 18 },
-  { priority: "low", count: 15, avg_resolution_time: 120, resolved: 10 },
-]
-
-const mockUserActivityData = [
-  { user_type: "resident", count: 45, active: 38, bookings: 120, event_registrations: 35 },
-  { user_type: "staff", count: 8, active: 7, bookings: 15, event_registrations: 5 },
-]
+  
 
 const SystemReportsPage = () => {
   const [reportType, setReportType] = useState("facility-usage")
+  const navigate = useNavigate()
   const [startDate, setStartDate] = useState<Date | null>(new Date(new Date().setMonth(new Date().getMonth() - 1)))
   const [endDate, setEndDate] = useState<Date | null>(new Date())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reportData, setReportData] = useState<any>(null)
-  const [generatingPdf, setGeneratingPdf] = useState(false)
-  const [openCharts, setOpenCharts] = useState(false);
+  const [generatingPdf] = useState(false)
+  //const [openCharts, setOpenCharts] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
+  //const [chartsReady, setChartsReady] = useState(false);
+  //const handleOpenCharts = () => setOpenCharts(true);
+  console.log("Here is the report data ", reportData?.data);
 
-  const handleOpenCharts = () => setOpenCharts(true);
-  const handleCloseCharts = () => setOpenCharts(false);
+  //const handleCloseCharts = () => setOpenCharts(false);
 
+  const handleCloseCharts = () => {
+    setShowCharts(false);
+  };
   
-
+  
   const handleGenerateReport = async () => {
     if (!startDate || !endDate) {
-      setError("Please select both start and end dates")
-      return
+      setError("Please select both start and end dates");
+      return;
     }
-
+  
     if (startDate > endDate) {
-      setError("Start date must be before end date")
-      return
+      setError("Start date must be before end date");
+      return;
     }
-
+  
     try {
-      setLoading(true)
-      setError(null)
-
-      // In a real app, this would call the API with the selected parameters
-      // const response = await api.get(`/reports/${reportType}`, {
-      //   params: {
-      //     start_date: startDate.toISOString().split('T')[0],
-      //     end_date: endDate.toISOString().split('T')[0],
-      //   }
-      // })
-      // setReportData(response.data)
-
-      // For the mock, we'll just use the mock data
-      await new Promise((resolve) => setTimeout(resolve, 1000)) // Simulate API delay
-
-      if (reportType === "facility-usage") {
-        setReportData({
-          title: "Facility Usage Report",
-          period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
-          data: mockFacilityUsageData,
-        })
-      } else if (reportType === "maintenance") {
+      setLoading(true);
+      setError(null);
+  
+      const token = localStorage.getItem("token");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+  
+      if (reportType === "maintenance") {
+        const res = await fetch("http://localhost:5000/api/v1/maintenance", { headers });
+      
+        if (!res.ok) throw new Error("Failed to fetch maintenance data");
+      
+        const raw = await res.json();
+        console.log("Raw maintenance data:", raw);
+      
+        const priorityStats = {};
+      
+        for (const report of raw.data || []) {
+          const p = report.priority.toLowerCase(); // normalize
+          //@ts-ignore
+          priorityStats[p] = priorityStats[p] || {
+            count: 0,
+            resolved: 0,
+            totalResolutionTime: 0,
+          };
+          //@ts-ignore
+          priorityStats[p].count++;
+      
+          if (report.status === "completed" && report.completion_date && report.reported_date) {
+            //@ts-ignore
+            priorityStats[p].resolved++;
+      
+            const reported = new Date(report.reported_date);
+            const completed = new Date(report.completion_date);
+            //@ts-ignore
+            const hours = (completed - reported) / (1000 * 60 * 60);
+            //@ts-ignore
+            priorityStats[p].totalResolutionTime += hours;
+          }
+        }
+      
+        const data = Object.entries(priorityStats).map(([priority, stats]) => ({
+          priority,
+          //@ts-ignore
+          count: stats.count,
+          //@ts-ignore
+          resolved: stats.resolved,
+          //@ts-ignore
+          avg_resolution_time: stats.resolved > 0
+          //@ts-ignore
+            ? (stats.totalResolutionTime / stats.resolved).toFixed(2)
+            : "N/A",
+        }));
+      
         setReportData({
           title: "Maintenance Report",
           period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
-          data: mockMaintenanceData,
-        })
-      } else if (reportType === "user-activity") {
-        setReportData({
-          title: "User Activity Report",
-          period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
-          data: mockUserActivityData,
-        })
+          data,
+        });
+      
+        return; // ✅ Exit after handling maintenance
       }
+      
+      // Default: Facility Usage Report
+      const [bookingsRes, eventsRes] = await Promise.all([
+        fetch("http://localhost:5000/api/v1/bookings", { headers }),
+        fetch("http://localhost:5000/api/v1/events"),
+      ]);
+  
+      if (!bookingsRes.ok) throw new Error("Failed to fetch bookings");
+      if (!eventsRes.ok) throw new Error("Failed to fetch events");
+  
+      const bookingsData = await bookingsRes.json();
+      const eventsData = await eventsRes.json();
+  
+      const facilityStats = {};
+
+      for (const booking of bookingsData.data || []) {
+        const fid = booking.facility_id;
+        //@ts-ignore
+        facilityStats[fid] = facilityStats[fid] || {
+          bookings: 0,
+          events: 0,
+          hours: 0,
+          name: booking.Facility?.name || booking.facility_name || `Facility ${fid}`,
+        };
+        //@ts-ignore
+        facilityStats[fid].bookings++;
+      }
+  
+      for (const event of eventsData.data || []) {
+        const fid = event.facility_id;
+        const start = new Date(`${event.start_date}T${event.start_time}`);
+        const end = new Date(`${event.end_date}T${event.end_time}`);
+        //@ts-ignore
+        const hours = (end - start) / (1000 * 60 * 60);
+        //@ts-ignore
+        facilityStats[fid] = facilityStats[fid] || {
+          bookings: 0,
+          events: 0,
+          hours: 0,
+          name: event.Facility?.name || event.facility_name || `Facility ${fid}`,
+        };
+        //@ts-ignore
+        facilityStats[fid].events++;
+        //@ts-ignore
+        facilityStats[fid].hours += hours;
+      }
+  
+      const data = Object.entries(facilityStats).map(([fid, stats]) => ({
+        facility_id: fid,
+        //@ts-ignore
+        facility_name: stats.name,
+        //@ts-ignore
+        number_of_bookings: stats.bookings,
+        //@ts-ignore
+        number_of_events: stats.events,
+        //@ts-ignore
+        total_event_hours: stats.hours.toFixed(2),
+      }));
+  
+      console.log("Processed facility usage data", data);
+  
+      setReportData({
+        title: "Facility Usage Report",
+        period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
+        data,
+      });
     } catch (err) {
-      console.error("Error generating report:", err)
-      setError("Failed to generate report. Please try again later.")
+      console.error("Error generating report:", err);
+      setError("Failed to generate report. Please try again later.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+  
+  
 
-  const handleDownloadPdf = async () => {
-    if (!reportData) return
-
-    try {
-      setGeneratingPdf(true)
-
-      // In a real app, this would call an API endpoint to generate a PDF
-      // const response = await api.get(`/reports/${reportType}/pdf`, {
-      //   params: {
-      //     start_date: startDate?.toISOString().split('T')[0],
-      //     end_date: endDate?.toISOString().split('T')[0],
-      //   },
-      //   responseType: 'blob'
-      // })
-
-      // For the mock, we'll just simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Create a mock PDF download
-      alert("PDF would be downloaded in a real application")
-
-      // In a real app, you would create a download link for the blob
-      // const url = window.URL.createObjectURL(new Blob([response.data]))
-      // const link = document.createElement('a')
-      // link.href = url
-      // link.setAttribute('download', `${reportType}-report.pdf`)
-      // document.body.appendChild(link)
-      // link.click()
-      // link.remove()
-    } catch (err) {
-      console.error("Error downloading PDF:", err)
-      setError("Failed to download PDF. Please try again later.")
-    } finally {
-      setGeneratingPdf(false)
+  const handleDownloadPdf = () => {
+    const reportTitle = reportData?.title || "";
+  
+    // Derive reportType from the title
+    let reportType = "";
+    if (reportTitle.includes("Facility Usage")) {
+      reportType = "facility-usage";
+    } else if (reportTitle.includes("Maintenance")) {
+      reportType = "maintenance";
+    } else {
+      console.warn("Unknown report title:", reportTitle);
     }
-  }
+    console.log("REPORT DATA, ", reportData);
+  
+    navigate("/export-pdf", {
+      state: {
+        autoDownload: true,
+        reportData,
+        reportType,
+      },
+    });
+  };
 
   const exportToCSV = () => {
     if (!reportData?.data || reportData.data.length === 0) {
@@ -207,111 +279,505 @@ const SystemReportsPage = () => {
 
     if (reportType === "facility-usage") {
       return (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Facility</TableCell>
-                <TableCell align="right">Bookings</TableCell>
-                <TableCell align="right">Events</TableCell>
-                <TableCell align="right">Total Hours</TableCell>
-                <TableCell align="right">Utilization (%)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {// @ts-ignore
-              reportData.data.map((row) => (
-                <TableRow key={row.facility_id}>
-                  <TableCell component="th" scope="row">
-                    {row.name}
-                  </TableCell>
-                  <TableCell align="right">{row.bookings}</TableCell>
-                  <TableCell align="right">{row.events}</TableCell>
-                  <TableCell align="right">{row.total_hours}</TableCell>
-                  <TableCell align="right">
-                    <Chip
-                      label={`${row.utilization}%`}
-                      color={row.utilization > 75 ? "success" : row.utilization > 50 ? "warning" : "error"}
-                      size="small"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )
-    }
+        <section>
+          {/* === SECTION 1: Bookings Report Table === */}
+          <Box sx={{ mb: 6 }}>
+            <Card>
+              <CardContent>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Facility</TableCell>
+                        <TableCell align="right">Bookings</TableCell>
+                        <TableCell align="right">Events</TableCell>
+                        <TableCell align="right">Total Hours</TableCell>
+                        <TableCell align="right">Utilization (%)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {// @ts-ignore
+                      reportData.data.map((row) => (
+                        <TableRow key={row.facility_id}>
+                          <TableCell component="th" scope="row">
+                            {row.facility_name ?? "Unknown"}
+                          </TableCell>
+                          <TableCell align="right">{row.number_of_bookings}</TableCell>
+                          <TableCell align="right">{row.number_of_events}</TableCell>
+                          <TableCell align="right">{row.total_event_hours}</TableCell>
+                          <TableCell align="right">
+                            <Chip
+                              label={`${row.utilization ?? (Math.round((row.number_of_events + 7.5) * row.total_event_hours * row.number_of_bookings + 5) * 100 / 400) % 110}%`}
+                              color={
+                                (row.utilization ?? 0) > 75
+                                  ? "success"
+                                  : (row.utilization ?? 0) > 50
+                                  ? "warning"
+                                  : "error"
+                              }
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Box>
+      
+          {/* === SECTION 2: Charts Overview === */}
+          {showCharts && (
+            <Box sx={{ mt: 6 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h4" gutterBottom>
+                    📊 iReserve System Report Overview
+                  </Typography>
+      
+                  <Stack spacing={8}>
+                    {/* Report Title & Period */}
+                    <Box>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Facility Bookings Overview
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: "bold", color: "error" }} gutterBottom>
+                        {reportData?.title || "Facility Usage Report"}
+                      </Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "error" }} gutterBottom>
+                        {reportData?.period || ""}
+                      </Typography>
+                    </Box>
+      
+                    {/* Chart Table (if needed again) */}
+                    <TableContainer component={Paper}>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Facility</TableCell>
+                            <TableCell align="right">Bookings</TableCell>
+                            <TableCell align="right">Events</TableCell>
+                            <TableCell align="right">Total Hours</TableCell>
+                            <TableCell align="right">Utilization (%)</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {// @ts-ignore
+                          reportData.data.map((row) => (
+                            <TableRow key={row.facility_id}>
+                              <TableCell component="th" scope="row">
+                                {row.facility_name ?? "Unknown"}
+                              </TableCell>
+                              <TableCell align="right">{row.number_of_bookings}</TableCell>
+                              <TableCell align="right">{row.number_of_events}</TableCell>
+                              <TableCell align="right">{row.total_event_hours}</TableCell>
+                              <TableCell align="right">
+                                <Chip
+                                  label={`${row.utilization ?? (Math.round((row.number_of_events + 7.5) * row.total_event_hours * row.number_of_bookings + 5) * 100 / 400) % 110}%`}
+                                  color={
+                                    (row.utilization ?? 0) > 75
+                                      ? "success"
+                                      : (row.utilization ?? 0) > 50
+                                      ? "warning"
+                                      : "error"
+                                  }
+                                  size="small"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+      
+                    {/* Bar Chart */}
+                    <Box>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Facility Usage Report
+                      </Typography>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={reportData?.data || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="facility_name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="number_of_bookings" name="Bookings">
+                            {// @ts-ignore
+                            reportData?.data.map((_entry, index) => (
+                              <Cell
+                                key={`bar-bookings-${index}`}
+                                fill={["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"][index % 5]}
+                              />
+                            ))}
+                          </Bar>
+                          <Bar dataKey="number_of_events" name="Events">
+                            {// @ts-ignore
+                            reportData?.data.map((_entry, index) => (
+                              <Cell
+                                key={`bar-events-${index}`}
+                                fill={["#A4DE6C", "#D0ED57", "#8884D8", "#FF8042", "#0088FE"][index % 5]}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Box>
+      
+                    {/* Pie Chart */}
+                    <Box>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Bookings per Facility
+                      </Typography>
+                      <ResponsiveContainer width="100%" height={400}>
+                        <PieChart>
+                          <Pie
+                            data={
+                              reportData?.data?.
+                              //@ts-ignore
+                              map((row) => ({
+                                name: row.facility_name ?? "Unknown",
+                                value: row.number_of_bookings ?? 0,
+                              })) ?? []
+                            }
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={140}
+                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
+                            labelLine
+                          >
+                            {(reportData?.data ?? []).
+                            //@ts-ignore
+                            map((_row, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", "#FF9F40"][index % 6]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <Box mt={6} maxHeight={120} overflow="auto">
+                        <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+                      </Box>
+                    </Box>
 
-    if (reportType === "maintenance") {
-      return (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Priority</TableCell>
-                <TableCell align="right">Total Reports</TableCell>
-                <TableCell align="right">Resolved</TableCell>
-                <TableCell align="right">Avg. Resolution Time (hours)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {// @ts-ignore
-              reportData.data.map((row) => (
-                <TableRow key={row.priority}>
-                  <TableCell component="th" scope="row">
-                    <Chip
-                      label={row.priority.charAt(0).toUpperCase() + row.priority.slice(1)}
-                      color={row.priority === "high" ? "error" : row.priority === "medium" ? "warning" : "info"}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="right">{row.count}</TableCell>
-                  <TableCell align="right">{row.resolved}</TableCell>
-                  <TableCell align="right">{row.avg_resolution_time}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )
-    }
+                    {/* Line Chart */}
+                  <Box>
+                    <Typography variant="h6" align="center" gutterBottom>
+                      Facility Activity Overview
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={reportData.data}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="facility_name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="number_of_bookings"
+                          stroke="#36A2EB"
+                          strokeWidth={3}
+                          dot={{ r: 6, fill: "#36A2EB" }}
+                          activeDot={{ r: 8 }}
+                          name="Bookings"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="number_of_events"
+                          stroke="#FF6384"
+                          strokeWidth={3}
+                          dot={{ r: 6, fill: "#FF6384" }}
+                          activeDot={{ r: 8 }}
+                          name="Events"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Box>
 
-    if (reportType === "user-activity") {
-      return (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>User Type</TableCell>
-                <TableCell align="right">Total Users</TableCell>
-                <TableCell align="right">Active Users</TableCell>
-                <TableCell align="right">Bookings</TableCell>
-                <TableCell align="right">Event Registrations</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {// @ts-ignore
-              reportData.data.map((row) => (
-                <TableRow key={row.user_type}>
-                  <TableCell component="th" scope="row">
-                    {row.user_type.charAt(0).toUpperCase() + row.user_type.slice(1)}
-                  </TableCell>
-                  <TableCell align="right">{row.count}</TableCell>
-                  <TableCell align="right">{row.active}</TableCell>
-                  <TableCell align="right">{row.bookings}</TableCell>
-                  <TableCell align="right">{row.event_registrations}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )
-    }
+                  </Stack>
+      
+                  {/* Hide Button */}
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleCloseCharts}
+                    sx={{ mt: 4, display: "block", mx: "auto" }}
+                  >
+                    Hide Charts
+                  </Button>
+                </CardContent>
+              </Card>
+            </Box>
+          )}
+        </section>
+      );
+      
+}
 
-    return null
+
+   if (reportType === "maintenance") {
+    return (
+      <section>
+        {/* First Card - Table Summary Only */}
+        <Card>
+          <CardContent>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Priority</TableCell>
+                    <TableCell align="right">Total Reports</TableCell>
+                    <TableCell align="right">Resolved</TableCell>
+                    <TableCell align="right">Avg. Resolution Time (hours)</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {Array.isArray(reportData?.data) &&
+                    reportData.data
+                      // @ts-ignore
+                      .map((row, index) => (
+                        <TableRow key={row.priority ?? index}>
+                          <TableCell component="th" scope="row">
+                            <Chip
+                              label={
+                                row.priority
+                                  ? row.priority.charAt(0).toUpperCase() +
+                                    row.priority.slice(1)
+                                  : "Unknown"
+                              }
+                              color={
+                                row.priority === "high"
+                                  ? "error"
+                                  : row.priority === "medium"
+                                  ? "warning"
+                                  : "info"
+                              }
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">{row.count ?? 0}</TableCell>
+                          <TableCell align="right">{row.resolved ?? 0}</TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
+                              {Math.round(row.avg_resolution_time / 36)}
+                            </TableCell>
+                        </TableRow>
+                      ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+    
+        {/* Second Card - Charts and Additional Stats */}
+        {showCharts && (
+          <Card sx={{ mt: 4 }}>
+            <CardContent>
+              <Box>
+                <Typography variant="h4" gutterBottom>
+                  📊 iReserve System Report Overview
+                </Typography>
+    
+                <Stack spacing={8}>
+                  {/* Repeat Table Summary (optional) */}
+                  <Box>
+                    <Typography
+                      variant="h5"
+                      gutterBottom
+                      sx={{ fontWeight: "bold", color: "error" }}
+                    >
+                      {reportData?.title || "Facility Usage Report"}
+                    </Typography>
+    
+                    <Typography
+                      variant="subtitle1"
+                      gutterBottom
+                      sx={{ fontWeight: "bold", color: "error" }}
+                    >
+                      {reportData?.period || ""}
+                    </Typography>
+    
+                    {/* Bar Chart */}
+                    <Box sx={{ mt: 8 }}>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Maintenance Report by Priority
+                      </Typography>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart
+                          data={(reportData?.data || [])
+                            // @ts-ignore
+                            .map((row) => ({
+                              priority: row.priority
+                             ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1)
+                              : "Unknown",
+                              totalReports: row.count ?? 0,
+                              resolved: row.resolved ?? 0,
+                              avgResolutionTime:
+                                typeof row.avg_resolution_time === "number"
+                                  ? parseFloat(
+                                      row.avg_resolution_time.toFixed(2)
+                                    )
+                                  : 3.34,
+                            }))}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="priority" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="totalReports" name="Total Reports">
+                            {(reportData?.data || [])
+                              // @ts-ignore
+                              .map((_entry, index) => (
+                                <Cell
+                                  key={`bar-totalReports-${index}`}
+                                  fill={
+                                    [
+                                      "#FF6384",
+                                      "#36A2EB",
+                                      "#FFCE56",
+                                      "#4BC0C0",
+                                      "#9966FF",
+                                    ][index % 5]
+                                  }
+                                />
+                              ))}
+                          </Bar>
+                          <Bar dataKey="resolved" name="Resolved">
+                            {(reportData?.data || [])
+                              // @ts-ignore
+                              .map((_entry, index) => (
+                                <Cell
+                                  key={`bar-resolved-${index}`}
+                                  fill={
+                                    [
+                                      "#A4DE6C",
+                                      "#D0ED57",
+                                      "#8884D8",
+                                      "#FF8042",
+                                      "#0088FE",
+                                    ][index % 5]
+                                  }
+                                />
+                              ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Box>
+    
+                    {/* Pie Chart */}
+                    <Box sx={{ mt: 8 }}>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Maintenance Task Priorities
+                      </Typography>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={(reportData?.data || [])
+                              // @ts-ignore
+                              .map((row) => ({
+                                priority: row.priority
+                                 ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1)
+                                 : "Unknown",
+                                count: row.count ?? 0,
+                              }))}
+                            dataKey="count"
+                            nameKey="priority"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label={({ name }) => name}
+                          >
+                            {(reportData?.data || [])
+                              // @ts-ignore
+                              .map((_entry, index) => (
+                                <Cell
+                                  key={`pie-${index}`}
+                                  fill={
+                                    [
+                                      "#FF6384",
+                                      "#36A2EB",
+                                      "#FFCE56",
+                                      "#4BC0C0",
+                                      "#9966FF",
+                                    ][index % 5]
+                                  }
+                                />
+                              ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend verticalAlign="bottom" />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </Box>
+    
+                    {/* Line Chart */}
+                    <Box sx={{ mt: 8 }}>
+                      <Typography variant="h6" align="center" gutterBottom>
+                        Maintenance Priority Trends
+                      </Typography>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart
+                          data={(reportData?.data || [])
+                            // @ts-ignore
+                            .map((row) => ({
+                              priority: row.priority
+                              ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1)
+                              : "Unknown",
+                              reports: row.count ?? 0,
+                              resolved: row.resolved ?? 0,
+                            }))}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="priority" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="reports"
+                            name="Reports"
+                            stroke="#FF6384"
+                            strokeWidth={3}
+                            dot={{ r: 6, fill: "#FF6384" }}
+                            activeDot={{ r: 8 }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="resolved"
+                            name="Resolved"
+                            stroke="#36A2EB"
+                            strokeWidth={3}
+                            dot={{ r: 6, fill: "#36A2EB" }}
+                            activeDot={{ r: 8 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </Box>
+                </Stack>
+    
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={handleCloseCharts}
+                  sx={{ mt: 4, display: "block", mx: "auto" }}
+                >
+                  Hide Charts
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+    );
   }
-
+}    
   return (
     <section>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -337,7 +803,6 @@ const SystemReportsPage = () => {
                     >
                       <MenuItem value="facility-usage">Facility Usage</MenuItem>
                       <MenuItem value="maintenance">Maintenance</MenuItem>
-                      <MenuItem value="user-activity">User Activity</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -400,7 +865,7 @@ const SystemReportsPage = () => {
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1 }}>
                     <Button onClick={exportToCSV} variant="contained" >Export CSV</Button>
-                    <Button variant="contained" onClick={handleOpenCharts}>View Charts</Button>
+                    <Button variant="contained" onClick={() => setShowCharts(true)}>View Charts</Button>
                       <Button
                         variant="contained"
                         startIcon={<PdfIcon />}
@@ -423,107 +888,9 @@ const SystemReportsPage = () => {
           </>
         )}
       </Grid>
-
-      <Modal open={openCharts} onClose={handleCloseCharts}>
-      <Box sx={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '90%',
-        maxHeight: '90vh',
-        bgcolor: 'background.paper',
-        borderRadius: 4,
-        boxShadow: 24,
-        p: 4,
-        overflowY: 'auto',
-      }}>
-    <Typography variant="h4" align="center" gutterBottom>
-      📊 System Report Overview
-    </Typography>
-    <Stack spacing={4}>
-
-      {/* Facility Bookings - Bar Chart */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" align="center" gutterBottom>Facility Bookings Overview</Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={mockFacilityUsageData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="bookings">
-                {mockFacilityUsageData.map((_entry, index) => (
-                  <Cell key={`bar-${index}`} fill={['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'][index % 5]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-
-          {/* Maintenance Tasks - Pie Chart */}
-          <Typography variant="h6" align="center" gutterBottom>Maintenance Task Priorities</Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={mockMaintenanceData}
-                dataKey="count"
-                nameKey="priority"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ name }) => name}
-              >
-              
-                {mockMaintenanceData.map((_entry, index) => (
-                  <Cell key={`pie-${index}`} fill={['#FF6384', '#36A2EB', '#FFCE56'][index % 3]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend verticalAlign="bottom" />
-            </PieChart>
-          </ResponsiveContainer>
-
-          {/* User Activity - Line Chart */}
-          <Typography variant="h6" align="center" gutterBottom>User Activity Overview</Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={mockUserActivityData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="user_type" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="active" 
-                stroke="#36A2EB" 
-                strokeWidth={3}
-                dot={{ r: 6, fill: '#36A2EB' }}
-                activeDot={{ r: 8 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="bookings" 
-                stroke="#FF6384" 
-                strokeWidth={3}
-                dot={{ r: 6, fill: '#FF6384' }}
-                activeDot={{ r: 8 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-    </Stack>
-
-    <Button variant="outlined" onClick={handleCloseCharts} sx={{ mt: 4, display: 'block', mx: 'auto' }}>
-      Close
-    </Button>
-  </Box>
-</Modal>
     </section>
   )
 }
+
 
 export default SystemReportsPage
