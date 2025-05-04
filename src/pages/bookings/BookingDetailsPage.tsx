@@ -90,6 +90,14 @@ const BookingDetailsPage = () => {
       const refreshed = await api.get(`/bookings/${id}`)
       setBooking(refreshed.data.data)
       setCancelDialogOpen(false)
+      // Sending a notification for canceled registration
+      await api.post("/notifications", {
+        title: "Booking Cancelled",
+        message: `You have successfully cancelled your booking for the event ${booking?.purpose}.`,
+        type: "booking",
+        related_id: id,
+        related_type: "booking",
+      })
     } catch (err: any) {
       console.error("Error cancelling booking:", err)
       if (err.response) {
