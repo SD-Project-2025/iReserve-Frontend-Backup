@@ -40,6 +40,7 @@ import ViewUser from "./components/admin/ViewUser"
 
 //Landing Page
 import LandingPage from "./LandingPage"
+import ExportPdfPage from "./pages/admin/ExportPdfPage"
 // Protected route component
 //@ts-ignore
 const ProtectedRoute = ({ children, requiredRole }: { children: any; requiredRole?: any }) => {
@@ -107,6 +108,7 @@ function App() {
         <Route path="/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/export-pdf" element={<ExportPdfPage />} />
       </Route>
 
       {/* Admin Routes */}
@@ -118,6 +120,7 @@ function App() {
         }
       >
         <Route path="/admin/facilities" element={<ManageFacilitiesPage />} />
+
         <Route path="/admin/bookings" element={<ManageBookingsPage />} />
         <Route path="/admin/bookings/:id" element={<BookingDetailsPage />} />
         <Route path="/admin/events" element={<ManageEventsPage />} />
