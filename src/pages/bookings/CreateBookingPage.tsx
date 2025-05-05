@@ -172,6 +172,13 @@ const CreateBookingPage = () => {
 
       await api.post("/bookings", bookingData)
       navigate("/bookings")
+      await api.post("/notifications", {
+        title: "Booking Created",
+        message: `You have successfully made a booking ${formData?.purpose}.`,
+        type: "booking",
+        related_id: formData?.facility_id,
+        related_type: "booking",
+      })
     } catch (err: any) {
       console.error("Error creating booking:", err)
       setError(err.response?.data?.message || "Failed to create booking. Please try again later.")

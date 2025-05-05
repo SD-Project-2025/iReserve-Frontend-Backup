@@ -685,9 +685,6 @@ const ResidentDashboard = () => {
       case "open":
         return "success"
       case "pending":
-      case "in-progress":
-      case "scheduled":
-        return "warning"
       case "rejected":
       case "cancelled":
       case "closed":

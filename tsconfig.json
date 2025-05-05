@@ -9,7 +9,9 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["vite/client","@types/google.maps"],
+    "types": ["vite/client","@types/google.maps","jest", "node"],
+     
+    "esModuleInterop": true,
 
  
     "moduleResolution": "bundler",
