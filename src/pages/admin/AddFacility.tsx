@@ -223,10 +223,13 @@ const AddFacility = () => {
         open_time: formatTime(formData.open_time),
         close_time: formatTime(formData.close_time),
         status: formData.status,
+        // TypeScript fix: Use user.id instead of staff_id
+        created_by: user?.id || 0, // Assuming user has an 'id' property
       };
 
       console.log("Submitting facility data:", payload); // Debug log
 
+      // FIX: Use the correct API endpoint
       const response = await api.post("/facilities", payload);
       
       if (response.status === 201) {
