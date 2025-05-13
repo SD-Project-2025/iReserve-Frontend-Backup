@@ -121,7 +121,7 @@ function App() {
         }
       >
         <Route path="/admin/facilities" element={<ManageFacilitiesPage />} />
-        {/* ADD THIS LINE: Add the create facility route before the :id route */}
+        {/* Add the facility creation route BEFORE the :id route */}
         <Route path="/admin/facilities/create" element={<AddFacility />} />
         <Route path="/admin/facilities/:id" element={<FacilityDetailsPage />} />
         <Route path="admin/facilities/:id/edit" element={<FacilityDetailsPage />} />
@@ -131,13 +131,14 @@ function App() {
         <Route path="/admin/events" element={<ManageEventsPage />} />
         <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance" element={<ManageMaintenancePage />} />
+        <Route path="/admin/events/create" element={<CreateEvent />} />
         <Route path="/admin/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/admin/users" element={<ManageUsersPage />} />
         <Route path="/admin/users/:id"element={<ViewUser />} />
         <Route path="/admin/reports" element={<SystemReportsPage />} />
         <Route path ="/admin/emaiUser" element={<ManageNotifications/>}/>
         <Route path="/admin/events/:id" element={<EventDetailsPage />} />
-        <Route path="/admin/events/:id/edit" element={<EditEvent />} />
+       < Route path="/admin/events/:id/edit" element={<EditEvent />} />
         <Route path="/admin/notifications" element={<ManageNotifications />} />
         <Route path="/admin/notifications/:id" element={<NotificationsPage />} />
       </Route>
