@@ -1,8 +1,7 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import React, { useState, useEffect } from "react"
+//import { useNavigate } from "react-router-dom"
 import {
   Typography,
   Grid,
@@ -24,6 +23,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material"
 import { DataGrid, type GridColDef, type GridRenderCellParams } from "@mui/x-data-grid"
 import {
@@ -53,17 +55,16 @@ interface Booking {
     type: string
     location: string
   }
-  Resident: {
-    resident_id: number
-  }
   approver: {
     staff_id: number
     employee_id: string
+    name: string
   } | null
+  resident_name: string | null
 }
 
 const ManageBookingsPage = () => {
-  const navigate = useNavigate()
+  //const navigate = useNavigate()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,7 +73,9 @@ const ManageBookingsPage = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterFacility, setFilterFacility] = useState<string>("all")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
@@ -80,7 +83,6 @@ const ManageBookingsPage = () => {
       try {
         setLoading(true)
         setError(null)
-
         const response = await api.get("/bookings")
         setBookings(response.data.data)
         setFilteredBookings(response.data.data)
@@ -91,35 +93,27 @@ const ManageBookingsPage = () => {
         setLoading(false)
       }
     }
-
     fetchBookings()
   }, [])
 
   useEffect(() => {
-    // Apply filters
     let result = bookings
-
-    // Filter by search term
     if (searchTerm) {
-      result = result.filter(
-        (booking) =>
-          `Resident ${booking.Resident?.resident_id}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          booking.Facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          booking.purpose.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    // Filter by status
-    if (filterStatus !== "all") {
-      result = result.filter((booking) => booking.status === filterStatus)
-    }
-
-    // Filter by facility
-    if (filterFacility !== "all") {
-      result = result.filter((booking) => booking.Facility?.facility_id === Number(filterFacility))
-    }
-
+      const lowerSearch = searchTerm.toLowerCase()
+      result = result.filter(booking => {
+        const searchStrings = [
+          booking.resident_name?.toLowerCase() || '',
+          `resident ${booking.resident_id}`.toLowerCase(),
+          booking.Facility.name.toLowerCase(),
+          booking.purpose.toLowerCase()
+        ]
+        return searchStrings.some(s => s.includes(lowerSearch))
+    })
+    if (filterStatus !== "all") result = result.filter(booking => booking.status === filterStatus)
+    if (filterFacility !== "all") result = result.filter(
+      booking => booking.Facility.facility_id === Number(filterFacility))
     setFilteredBookings(result)
+    }
   }, [searchTerm, filterStatus, filterFacility, bookings])
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +132,6 @@ const ManageBookingsPage = () => {
     try {
       setProcessing(true)
       await api.put(`/bookings/${bookingId}/status`, { status })
-      // Refresh bookings
       const response = await api.get("/bookings")
       setBookings(response.data.data)
       setDialogOpen(false)
@@ -156,6 +149,11 @@ const ManageBookingsPage = () => {
     setDialogOpen(true)
   }
 
+  const openDetailsModal = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setDetailModalOpen(true)
+  }
+
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "approved":
@@ -170,24 +168,26 @@ const ManageBookingsPage = () => {
     }
   }
 
-  // Get unique facilities for filter
-  const facilities = [...new Set(bookings.map((booking) => booking.Facility))]
-    .filter((facility): facility is NonNullable<typeof facility> => facility !== null)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const facilities = Array.from(new Map(
+    bookings.map(booking => [booking.Facility.facility_id, booking.Facility])
+  ).values()).sort((a, b) => a.name.localeCompare(b.name))
 
   const columns: GridColDef[] = [
     { field: "booking_id", headerName: "ID", width: 70 },
     {
       field: "user",
       headerName: "User",
-      width: 150,
-      valueGetter: (params) => `Resident ${params.row.Resident?.resident_id}` || "Unknown",
+      width: 200,
+      valueGetter: (params) => {
+        if (params.row.resident_name) return params.row.resident_name
+        return `Resident ${params.row.resident_id || 'Unknown'}`
+      },
     },
     {
       field: "facility",
       headerName: "Facility",
-      width: 150,
-      valueGetter: (params) => params.row.Facility?.name || "Unknown",
+      width: 180,
+      valueGetter: (params) => params.row.Facility.name,
     },
     {
       field: "date",
@@ -195,8 +195,8 @@ const ManageBookingsPage = () => {
       width: 120,
       valueGetter: (params) => new Date(params.row.date).toLocaleDateString(),
     },
-    { field: "start_time", headerName: "Start", width: 80 },
-    { field: "end_time", headerName: "End", width: 80 },
+    { field: "start_time", headerName: "Start", width: 90 },
+    { field: "end_time", headerName: "End", width: 90 },
     { field: "purpose", headerName: "Purpose", width: 200 },
     { field: "attendees", headerName: "Attendees", width: 100, type: "number" },
     {
@@ -204,7 +204,7 @@ const ManageBookingsPage = () => {
       headerName: "Status",
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
+        <Chip label={params.value} color={getStatusColor(params.value) as any} size="small" />
       ),
     },
     {
@@ -222,7 +222,7 @@ const ManageBookingsPage = () => {
           <Button
             size="small"
             startIcon={<ViewIcon />}
-            onClick={() => navigate(`/admin/bookings/${params.row.booking_id}`)}
+            onClick={() => openDetailsModal(params.row)}
           >
             View
           </Button>
@@ -285,7 +285,12 @@ const ManageBookingsPage = () => {
             <Grid item xs={6} md={3}>
               <FormControl fullWidth>
                 <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select labelId="status-filter-label" value={filterStatus} label="Status" onChange={handleStatusChange}>
+                <Select
+                  labelId="status-filter-label"
+                  value={filterStatus}
+                  label="Status"
+                  onChange={handleStatusChange}
+                >
                   <MenuItem value="all">All Statuses</MenuItem>
                   <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="approved">Approved</MenuItem>
@@ -338,7 +343,7 @@ const ManageBookingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Confirmation Dialog */}
+      {/* Status Update Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>{dialogAction?.action === "approve" ? "Approve Booking" : "Reject Booking"}</DialogTitle>
         <DialogContent>
@@ -363,6 +368,74 @@ const ManageBookingsPage = () => {
             {dialogAction?.action === "approve" ? "Approve" : "Reject"}
             {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Details Modal */}
+      <Dialog open={detailModalOpen} onClose={() => setDetailModalOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Booking Details</DialogTitle>
+        <DialogContent>
+          {selectedBooking && (
+            <List>
+              <ListItem>
+                <ListItemText
+                  primary="Facility"
+                  secondary={selectedBooking.Facility.name}
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Date"
+                  secondary={new Date(selectedBooking.date).toLocaleDateString()}
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Time"
+                  secondary={`${selectedBooking.start_time} - ${selectedBooking.end_time}`}
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Purpose"
+                  secondary={selectedBooking.purpose}
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Attendees"
+                  secondary={selectedBooking.attendees}
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Status"
+                  secondary={
+                    <Chip
+                      label={selectedBooking.status}
+                      color={getStatusColor(selectedBooking.status) as any}
+                      size="small"
+                    />
+                  }
+                />
+              </ListItem>
+              {(selectedBooking.status === "approved" || selectedBooking.status === "rejected") && (
+                <ListItem>
+                  <ListItemText
+                    primary="Processed By"
+                    secondary={
+                      selectedBooking.approver ? 
+                      `${selectedBooking.approver.name} (${selectedBooking.approver.employee_id})` : 
+                      "Unknown"
+                    }
+                  />
+                </ListItem>
+              )}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailModalOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </section>
