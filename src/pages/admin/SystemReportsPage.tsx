@@ -351,6 +351,8 @@ const SystemReportsPage = () => {
                     </Box>
       
                     {/* Chart Table (if needed again) */}
+
+                    {/*
                     <TableContainer component={Paper}>
                       <Table>
                         <TableHead>
@@ -363,6 +365,7 @@ const SystemReportsPage = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
+                          
                           {// @ts-ignore
                           reportData.data.map((row) => (
                             <TableRow key={row.facility_id}>
@@ -390,6 +393,7 @@ const SystemReportsPage = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
+                    */}
       
                     {/* Bar Chart */}
                     <Box>
@@ -524,7 +528,6 @@ const SystemReportsPage = () => {
    if (reportType === "maintenance") {
     return (
       <section>
-        {/* First Card - Table Summary Only */}
         <Card>
           <CardContent>
             <TableContainer component={Paper}>
@@ -564,8 +567,9 @@ const SystemReportsPage = () => {
                           <TableCell align="right">{row.count ?? 0}</TableCell>
                           <TableCell align="right">{row.resolved ?? 0}</TableCell>
                           <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
-                              {Math.round(row.avg_resolution_time / 36)}
-                            </TableCell>
+                            {Math.round((isNaN(row.avg_resolution_time) || row.avg_resolution_time === "N/A") ? 0 : row.avg_resolution_time / 36)}
+                          </TableCell>
+
                         </TableRow>
                       ))}
                 </TableBody>
@@ -573,6 +577,7 @@ const SystemReportsPage = () => {
             </TableContainer>
           </CardContent>
         </Card>
+        
     
         {/* Second Card - Charts and Additional Stats */}
         {showCharts && (
