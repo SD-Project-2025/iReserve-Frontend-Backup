@@ -358,12 +358,12 @@ const CreateEventPage = () => {
         }
       }
 
-      // Validate image - using direct error messaging like your working code
+      // Validate image - only check for uploaded file
       if (imageFile && !imageUploaded) {
         setError("Please upload the image before submitting the form")
         return false
-      } else if (!imageFile && !formData.image_url.trim()) {
-        setError("Either upload an image or provide an image URL")
+      } else if (!imageFile) {
+        setError("Please select and upload an image")
         return false
       }
     }
@@ -384,8 +384,8 @@ const CreateEventPage = () => {
   const isFinalStepComplete = () => {
     return (
       !!formData.registration_deadline &&
-      // Image validation - either uploaded file or URL must be provided
-      ((imageFile && imageUploaded) || (!imageFile && !!formData.image_url.trim()))
+      // Image validation - require uploaded file
+      (imageFile && imageUploaded)
     )
   }
 
@@ -644,6 +644,12 @@ const CreateEventPage = () => {
                       Event Image *
                     </Typography>
                     
+                    {/* Better Image Guidelines - Improvement #5 */}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                      For best results, use images with a 16:9 aspect ratio, at least 1200x675 pixels.
+                      Maximum file size: 5MB. Supported formats: JPG, PNG, WebP.
+                    </Typography>
+                    
                     <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Button
                         variant="outlined"
@@ -709,25 +715,18 @@ const CreateEventPage = () => {
                       </Box>
                     )}
                     
+                    {/* Optimization Feedback - Improvement #4 */}
                     {imageUploaded && (
                       <Alert severity="success" sx={{ mb: 2 }}>
-                        Image uploaded successfully!
+                        Image uploaded and optimized for web successfully!
                       </Alert>
                     )}
                     
-                    <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-                      - OR -
-                    </Typography>
-                    
-                    <TextField
-                      fullWidth
-                      label="Image URL *"
-                      value={formData.image_url}
-                      onChange={(e) => handleChange("image_url", e.target.value)}
-                      placeholder="https://example.com/event-image.jpg"
-                      disabled={!!imageFile || isUploading}
-                      helperText={imageFile ? "File upload will be used instead of URL" : "Enter a URL if you're not uploading a file"}
-                    />
+                    {!imageFile && !imageUploaded && (
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        Please select and upload an image for your event.
+                      </Alert>
+                    )}
                   </Grid>
                   
                   <Grid item xs={12}>
