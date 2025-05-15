@@ -39,6 +39,9 @@ jobs:
           VITE_GOOGLE_MAPS_API_KEY :  ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_CHATBOT_AGENT_ID :  ${{ secrets.VITE_CHATBOT_AGENT_ID }}
           VITE_CHATBOT_PROJECT_ID : ${{ secrets.VITE_CHATBOT_PROJECT_ID }}
+          VITE_CLOUDINARY_UPLOAD_URL: ${{ secrets.VITE_CLOUDINARY_UPLOAD_URL }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+          VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
