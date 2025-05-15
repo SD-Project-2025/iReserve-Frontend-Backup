@@ -24,7 +24,7 @@ import {
   Snackbar,
   LinearProgress,
   IconButton,
-  Tooltip, // Added for tooltip
+  Tooltip,
 } from "@mui/material"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { TimePicker } from "@mui/x-date-pickers/TimePicker"
@@ -32,9 +32,6 @@ import { useNavigate } from "react-router-dom"
 import { api } from "@/services/api"
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import ClearIcon from "@mui/icons-material/Clear"
-
-// ImgBB API key
-const IMGBB_API_KEY = "c858efc713a4eb5320c267b01746f2ee"
 
 interface Facility {
   facility_id: number
@@ -54,7 +51,7 @@ const CreateEventPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
 
-  // New state variables for image upload
+  // State variables for image upload
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -141,22 +138,12 @@ const CreateEventPage = () => {
     }
   }
 
-  // Helper function to convert File to base64
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = (error) => reject(error)
-      reader.readAsDataURL(file)
-    })
-  }
-
   // Handle file selection for image upload
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0]
       setImageFile(file)
-      
+
       // Create a preview URL
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl)
@@ -186,57 +173,48 @@ const CreateEventPage = () => {
     setImageUploaded(false)
   }
 
-  // Upload to ImgBB
-  const uploadToImgBB = async () => {
+  // Upload to Cloudinary (frontend-only solution)
+  const uploadToCloudinary = async () => {
     if (!imageFile) {
       return;
     }
-    
+
     setIsUploading(true);
     setError(null);
     setUploadProgress(20);
-    
+
     try {
-      // Convert file to base64
-      const base64Image = await convertFileToBase64(imageFile);
+      // Create form data for Cloudinary upload
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      formData.append('upload_preset', 'ireserve_unsigned'); // Using your created unsigned upload preset
+      formData.append('folder', 'events');
+      
       setUploadProgress(40);
       
-      // Create form data
-      const formData = new FormData();
-      formData.append('key', IMGBB_API_KEY);
-      // Remove data:image/jpeg;base64, part
-      formData.append('image', base64Image.split(',')[1]); 
-      
-      setUploadProgress(60);
-      
-      // Upload to ImgBB
-      const response = await fetch('https://api.imgbb.com/1/upload', {
+      // Upload directly to Cloudinary using your cloud name (dixssghji)
+      const response = await fetch('https://api.cloudinary.com/v1_1/dixssghji/image/upload', {
         method: 'POST',
         body: formData
       });
       
-      setUploadProgress(80);
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error?.message || 'Upload failed');
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
       }
       
-      // Extract image URL from response
-      const imageUrl = result.data.url;
-      
-      console.log("Upload successful:", imageUrl);
+      const result = await response.json();
       setUploadProgress(100);
+      
+      console.log("Upload successful:", result.secure_url);
       setImageUploaded(true);
       
       // Update form data with the image URL
       setFormData(prev => ({
         ...prev,
-        image_url: imageUrl,
+        image_url: result.secure_url,
       }));
       
-      return imageUrl;
+      return result.secure_url;
     } catch (error) {
       console.error("Error uploading image:", error);
       let errorMessage = "Failed to upload image.";
@@ -256,8 +234,8 @@ const CreateEventPage = () => {
       setError("Please select an image file first");
       return;
     }
-    
-    await uploadToImgBB();
+
+    await uploadToCloudinary();
   };
 
   const validateStep = () => {
@@ -417,22 +395,22 @@ const CreateEventPage = () => {
     if (activeStep !== 2) {
       return !(submitting || isUploading)
     }
-    
+
     // On the final step, check that all required fields are filled
     // and that no processes are running
     return isFinalStepComplete() && !(submitting || isUploading)
   }
-  
+
   // Get tooltip message
   const getSubmitButtonTooltip = () => {
     if (submitting) {
       return "Submitting..."
     }
-    
+
     if (isUploading) {
       return "Image upload in progress"
     }
-    
+
     if (activeStep === 2) {
       if (!formData.registration_deadline) {
         return "Registration deadline is required"
@@ -446,7 +424,7 @@ const CreateEventPage = () => {
         return "Please upload an image or provide an image URL"
       }
     }
-    
+
     return ""
   }
 
@@ -626,19 +604,18 @@ const CreateEventPage = () => {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Fee (R)"
-                    type="number"
-                    placeholder="Enter amount in ZAR"
-                    value={formData.fee}
-                    onChange={(e) => handleChange("fee", e.target.value)}
-                    InputProps={{
-                      startAdornment: <span style={{ marginRight: 4 }}>R</span>,
-                    }}
-                  />
-                </Grid>
-
+                    <TextField
+                      fullWidth
+                      label="Fee (R)"
+                      type="number"
+                      placeholder="Enter amount in ZAR"
+                      value={formData.fee}
+                      onChange={(e) => handleChange("fee", e.target.value)}
+                      InputProps={{
+                        startAdornment: <span style={{ marginRight: 4 }}>R</span>,
+                      }}
+                    />
+                  </Grid>
                 </Grid>
               )}
 
@@ -661,7 +638,7 @@ const CreateEventPage = () => {
                     />
                   </Grid>
                   
-                  {/* Modified Image Section - Using your working code pattern */}
+                  {/* Image Section with Cloudinary */}
                   <Grid item xs={12}>
                     <Typography variant="subtitle1" gutterBottom>
                       Event Image *
@@ -752,7 +729,6 @@ const CreateEventPage = () => {
                       helperText={imageFile ? "File upload will be used instead of URL" : "Enter a URL if you're not uploading a file"}
                     />
                   </Grid>
-                  {/* End of Modified Image Section */}
                   
                   <Grid item xs={12}>
                     <FormControlLabel
