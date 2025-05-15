@@ -350,51 +350,6 @@ const SystemReportsPage = () => {
                       </Typography>
                     </Box>
       
-                    {/* Chart Table (if needed again) */}
-
-                    {/*
-                    <TableContainer component={Paper}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Facility</TableCell>
-                            <TableCell align="right">Bookings</TableCell>
-                            <TableCell align="right">Events</TableCell>
-                            <TableCell align="right">Total Hours</TableCell>
-                            <TableCell align="right">Utilization (%)</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          
-                          {// @ts-ignore
-                          reportData.data.map((row) => (
-                            <TableRow key={row.facility_id}>
-                              <TableCell component="th" scope="row">
-                                {row.facility_name ?? "Unknown"}
-                              </TableCell>
-                              <TableCell align="right">{row.number_of_bookings}</TableCell>
-                              <TableCell align="right">{row.number_of_events}</TableCell>
-                              <TableCell align="right">{row.total_event_hours}</TableCell>
-                              <TableCell align="right">
-                                <Chip
-                                  label={`${row.utilization ?? (Math.round((row.number_of_events + 7.5) * row.total_event_hours * row.number_of_bookings + 5) * 100 / 400) % 110}%`}
-                                  color={
-                                    (row.utilization ?? 0) > 75
-                                      ? "success"
-                                      : (row.utilization ?? 0) > 50
-                                      ? "warning"
-                                      : "error"
-                                  }
-                                  size="small"
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                    */}
-      
                     {/* Bar Chart */}
                     <Box>
                       <Typography variant="h6" align="center" gutterBottom>
@@ -555,10 +510,12 @@ const SystemReportsPage = () => {
                                   : "Unknown"
                               }
                               color={
-                                row.priority === "high"
+                                row.priority === "critical"
                                   ? "error"
-                                  : row.priority === "medium"
+                                : row.priority === "medium"
                                   ? "warning"
+                                : row.priority == "low"
+                                  ? "error"
                                   : "info"
                               }
                               size="small"
@@ -569,7 +526,6 @@ const SystemReportsPage = () => {
                           <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
                             {Math.round((isNaN(row.avg_resolution_time) || row.avg_resolution_time === "N/A") ? 0 : row.avg_resolution_time / 36)}
                           </TableCell>
-
                         </TableRow>
                       ))}
                 </TableBody>
