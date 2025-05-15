@@ -30,6 +30,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ClearIcon from "@mui/icons-material/Clear";
 
+// Environment variables
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES;
+
 interface FacilityFormData {
   name: string;
   type: string;
@@ -241,7 +245,7 @@ const AddFacility = () => {
     setImageUploaded(false);
   };
 
-  // Upload to Cloudinary
+  // Upload to Cloudinary using environment variables
   const uploadToCloudinary = async () => {
     if (!imageFile) {
       setError("Please select an image first");
@@ -262,13 +266,13 @@ const AddFacility = () => {
       // Create form data for Cloudinary upload
       const formData = new FormData();
       formData.append('file', imageFile);
-      formData.append('upload_preset', 'ireserve_facilities'); // Facility-specific upload preset
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); // Using environment variable
       // No need to specify folder as it's configured in the preset
       
       setUploadProgress(40);
       
-      // Upload directly to Cloudinary using your cloud name
-      const response = await fetch('https://api.cloudinary.com/v1_1/dixssghji/image/upload', {
+      // Upload directly to Cloudinary using environment variable for cloud name
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: 'POST',
         body: formData
       });

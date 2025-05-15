@@ -33,6 +33,10 @@ import { api } from "@/services/api"
 import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import ClearIcon from "@mui/icons-material/Clear"
 
+// Environment variables
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
 interface Facility {
   facility_id: number
   name: string
@@ -173,7 +177,7 @@ const CreateEventPage = () => {
     setImageUploaded(false)
   }
 
-  // Upload to Cloudinary (frontend-only solution)
+  // Upload to Cloudinary (using environment variables)
   const uploadToCloudinary = async () => {
     if (!imageFile) {
       return;
@@ -187,13 +191,13 @@ const CreateEventPage = () => {
       // Create form data for Cloudinary upload
       const formData = new FormData();
       formData.append('file', imageFile);
-      formData.append('upload_preset', 'ireserve_unsigned'); // Using your created unsigned upload preset
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); // Using environment variable
       formData.append('folder', 'events');
       
       setUploadProgress(40);
       
-      // Upload directly to Cloudinary using your cloud name (dixssghji)
-      const response = await fetch('https://api.cloudinary.com/v1_1/dixssghji/image/upload', {
+      // Upload directly to Cloudinary using environment variable for cloud name
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: 'POST',
         body: formData
       });
@@ -644,7 +648,7 @@ const CreateEventPage = () => {
                       Event Image *
                     </Typography>
                     
-                    {/* Better Image Guidelines - Improvement #5 */}
+                    {/* Image Guidelines */}
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
                       For best results, use images with a 16:9 aspect ratio, at least 1200x675 pixels.
                       Maximum file size: 5MB. Supported formats: JPG, PNG, WebP.
@@ -715,7 +719,6 @@ const CreateEventPage = () => {
                       </Box>
                     )}
                     
-                    {/* Optimization Feedback - Improvement #4 */}
                     {imageUploaded && (
                       <Alert severity="success" sx={{ mb: 2 }}>
                         Image uploaded and optimized for web successfully!
