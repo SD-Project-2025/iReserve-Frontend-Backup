@@ -34,7 +34,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload"
 import ClearIcon from "@mui/icons-material/Clear"
 
 // Environment variables
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_URL = import.meta.env.VITE_CLOUDINARY_UPLOAD_URL;
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 interface Facility {
@@ -196,8 +196,8 @@ const CreateEventPage = () => {
       
       setUploadProgress(40);
       
-      // Upload directly to Cloudinary using environment variable for cloud name
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      // Upload directly to Cloudinary using environment variable for upload URL
+      const response = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: 'POST',
         body: formData
       });
