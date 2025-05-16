@@ -162,7 +162,7 @@ const SystemReportsPage = () => {
   const [showCharts, setShowCharts] = useState(false)
 
   // Facility filtering state
-  const [facilityCategory, setFacilityCategory] = useState<string>("All")
+  //const [facilityCategory, setFacilityCategory] = useState<string>("All")
   const [facilityType, setFacilityType] = useState<string>("All")
   const [specificFacility, setSpecificFacility] = useState<string>("All")
 
@@ -170,7 +170,7 @@ const SystemReportsPage = () => {
   const [maintenancePriority, setMaintenancePriority] = useState<string>("All")
 
   // State for facility data
-  const [facilities, setFacilities] = useState<Facility[]>([])
+  const [, setFacilities] = useState<Facility[]>([])
   const [facilityCategories, setFacilityCategories] = useState<Record<string, string[]>>(initialFacilityCategories)
   const [loadingFacilities, setLoadingFacilities] = useState(false)
   const [lastFacilityFetchTime, setLastFacilityFetchTime] = useState<Date | null>(null)
@@ -188,7 +188,7 @@ const SystemReportsPage = () => {
   const [availableFacilities, setAvailableFacilities] = useState<string[]>([])
 
   // Flatten all facilities for the autocomplete
-  const allFacilities = Object.values(facilityCategories).flat()
+  //const allFacilities = Object.values(facilityCategories).flat()
 
   // Generate sample data for additional charts
   const monthlyUsageData = useMemo(() => generateMonthlyData(12, 150, 50), [])
@@ -1219,7 +1219,7 @@ const SystemReportsPage = () => {
                       <ZAxis dataKey="facility_name" name="Facility" />
                       <RechartsTooltip
                         cursor={{ strokeDasharray: "3 3" }}
-                        formatter={(value, name, props) => {
+                        formatter={(value, name, _props) => {
                           if (name === "Bookings") return [`${value} bookings`, name]
                           if (name === "Hours") return [`${value} hours`, name]
                           return [value, name]
