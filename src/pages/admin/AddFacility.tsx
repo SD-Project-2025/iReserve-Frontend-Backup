@@ -32,7 +32,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 
 // Environment variables
 const CLOUDINARY_UPLOAD_URL = import.meta.env.VITE_CLOUDINARY_UPLOAD_URL;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 interface FacilityFormData {
   name: string;
