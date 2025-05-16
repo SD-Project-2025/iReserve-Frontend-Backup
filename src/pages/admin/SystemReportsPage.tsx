@@ -514,7 +514,7 @@ const SystemReportsPage = () => {
                                   ? "error"
                                 : row.priority === "medium"
                                   ? "warning"
-                                : row.priority == "low"
+                                : row.priority === "low"
                                   ? "error"
                                   : "info"
                               }
