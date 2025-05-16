@@ -933,28 +933,6 @@ const fetchMaintenancePriorities = async () => {
               </CardContent>
             </Card>
           </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card sx={{ height: "100%", background: "linear-gradient(135deg, #607D8B 0%, #455A64 100%)" }}>
-              <CardContent sx={{ color: "white" }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                    Maintenance Cost
-                  </Typography>
-                  <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)" }}>
-                    <MoneyIcon />
-                  </Avatar>
-                </Box>
-                <Typography variant="h3" sx={{ mb: 1, fontWeight: "bold" }}>
-                ${Number.parseInt(kpis.totalCost || "0").toLocaleString()}
-              </Typography>
-              <Typography variant="body2">
-                Avg ${(Number.parseInt(kpis.totalCost || "0") / (kpis.totalReports || 1)).toFixed(0)} per report
-              </Typography>
-
-              </CardContent>
-            </Card>
-          </Grid>
         </Grid>
       )
     }
@@ -1000,8 +978,14 @@ const fetchMaintenancePriorities = async () => {
                       <XAxis dataKey="facility_name" />
                       <YAxis />
                       <RechartsTooltip
-                        formatter={(value, name) => [`${value}`, name === "number_of_bookings" ? "Bookings" : "Events"]}
+                       formatter={(value, name) => {
+                          if (name === "number_of_bookings") return [`${value}`, "Bookings"];
+                          if (name === "number_of_events") return [`${value}`, "Events"];
+                          return [`${value}`, name];
+                        }}
                         labelFormatter={(label) => `Facility: ${label}`}
+                        contentStyle={{ backgroundColor: "#fff", color: "red" }} // box and text
+                        itemStyle={{ color: "red" }} // color of each line (e.g. Bookings)
                       />
                       <Legend />
                       <Bar
@@ -1035,6 +1019,8 @@ const fetchMaintenancePriorities = async () => {
                         <RechartsTooltip
                           formatter={(value) => [`${value} hours`, "Usage Hours"]}
                           labelFormatter={(label) => `Facility: ${label}`}
+                        contentStyle={{ backgroundColor: "#fff", color: "red" }} // box and text
+                        itemStyle={{ color: "red" }} // color of each line (e.g. Bookings)
                         />
                         <Legend />
                         <Bar dataKey="total_event_hours" name="Usage Hours" fill="#FF9800" radius={[4, 4, 0, 0]} />
@@ -1056,26 +1042,36 @@ const fetchMaintenancePriorities = async () => {
                   </Typography>
                   <ResponsiveContainer width="100%" height={400}>
                     <ComposedChart data={monthlyUsageData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar
-                        dataKey="value"
-                        name="Actual Usage"
-                        fill={theme.palette.primary.main}
-                        radius={[4, 4, 0, 0]}
+                    <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" 
                       />
-                      <Line
+                      <YAxis />
+                    
+                    <RechartsTooltip
+                      contentStyle={{ backgroundColor: "#fff", color: "red" }}
+                      itemStyle={{ color: "red" }}
+                      labelStyle={{ color: "red" }}
+                    />
+                    
+                    <Legend wrapperStyle={{ color: "red" }} />
+                    
+                    <Bar
+                      dataKey="value"
+                      name="Actual Usage"
+                      fill="blue"
+                      radius={[4, 4, 0, 0]}
+                    />
+  
+                  <Line
                         type="monotone"
                         dataKey="target"
                         name="Target"
-                        stroke="#ff0000"
+                        stroke="yellow"
                         strokeWidth={2}
                         dot={{ r: 4 }}
                       />
-                    </ComposedChart>
+                </ComposedChart>
+
                   </ResponsiveContainer>
 
                   <Box sx={{ mt: 4 }}>
@@ -1096,6 +1092,7 @@ const fetchMaintenancePriorities = async () => {
                           type="monotone"
                           dataKey="value"
                           name="Utilization"
+                          
                           stroke={theme.palette.primary.main}
                           fill={alpha(theme.palette.primary.main, 0.2)}
                         />
@@ -1120,7 +1117,10 @@ const fetchMaintenancePriorities = async () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
-                      <RechartsTooltip />
+                      <RechartsTooltip 
+                         itemStyle={{ color: "red" }}
+                        labelStyle={{ color: "red" }}
+                      />
                       <Legend />
                       <Area
                         type="monotone"
