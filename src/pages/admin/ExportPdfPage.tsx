@@ -1,5 +1,6 @@
-// imports remain the same
-import { useRef, useState, useEffect } from "react";
+"use client"
+
+import { useRef, useState, useEffect } from "react"
 import {
   Box,
   Button,
@@ -12,57 +13,77 @@ import {
   TableHead,
   TableRow,
   Paper,
-} from "@mui/material";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import Chart from "chart.js/auto";
-import PdfIcon from "@mui/icons-material/PictureAsPdf";
-import { useLocation } from "react-router-dom";
-import { FC } from "react";
+  Alert,
+} from "@mui/material"
+import { jsPDF } from "jspdf"
+import html2canvas from "html2canvas"
+import Chart from "chart.js/auto"
+import PdfIcon from "@mui/icons-material/PictureAsPdf"
+import { useLocation, useNavigate } from "react-router-dom"
+import type { FC } from "react"
 
-let chartInstances: Chart[] = [];
+let chartInstances: Chart[] = []
 
 const ExportPdfPage: FC = () => {
-  const location = useLocation();
-  const { reportData, autoDownload, reportType } = location.state || {};
-  const reportRef = useRef(null);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
-  const [chartsReady, setChartsReady] = useState(false);
-  const [hasDownloaded, setHasDownloaded] = useState(false);
-  const chartRenderTarget = 3; // Charts rendered based on report type
-  let chartRenderCounter = 0;
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Get report data from sessionStorage if not in location state
+  const storedData = sessionStorage.getItem("pdfReportData")
+  const parsedData = storedData ? JSON.parse(storedData) : null
+
+  const { reportData, autoDownload, reportType } = location.state || parsedData || {}
+
+  const reportRef = useRef<HTMLDivElement>(null)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [chartsReady, setChartsReady] = useState(false)
+  const [hasDownloaded, setHasDownloaded] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Determine how many charts to render based on report type
+  const chartRenderTarget = reportType === "maintenance" ? 3 : 3
+  let chartRenderCounter = 0
 
   const onChartRendered = () => {
-    chartRenderCounter++;
+    chartRenderCounter++
     if (chartRenderCounter >= chartRenderTarget) {
-      setChartsReady(true);
+      setChartsReady(true)
     }
-  };
+  }
 
   useEffect(() => {
-    if (reportData?.data?.length && reportType) {
-      generateCharts();
+    // Clear stored data after use
+    if (parsedData) {
+      sessionStorage.removeItem("pdfReportData")
     }
-  }, [reportData, reportType]);
+
+    if (reportData?.data?.length && reportType) {
+      generateCharts()
+    } else if (!reportData) {
+      setError("No report data available. Please generate a report first.")
+    }
+  }, [reportData, reportType])
 
   useEffect(() => {
     if (autoDownload && chartsReady && !generatingPdf && !hasDownloaded) {
-      setHasDownloaded(true);
-      handleDownloadPdf();
+      setHasDownloaded(true)
+      handleDownloadPdf()
     }
-  }, [autoDownload, chartsReady, generatingPdf, hasDownloaded]);
-  
+  }, [autoDownload, chartsReady, generatingPdf, hasDownloaded])
 
   const generateCharts = () => {
     // Destroy previous charts
-    chartInstances.forEach(chart => chart.destroy());
-    chartInstances = [];
+    chartInstances.forEach((chart) => chart.destroy())
+    chartInstances = []
 
-    const ctx1 = document.getElementById("chart1") as HTMLCanvasElement;
-    const ctx2 = document.getElementById("chart2") as HTMLCanvasElement;
-    const ctx3 = document.getElementById("chart3") as HTMLCanvasElement;
+    const ctx1 = document.getElementById("chart1") as HTMLCanvasElement
+    const ctx2 = document.getElementById("chart2") as HTMLCanvasElement
+    const ctx3 = document.getElementById("chart3") as HTMLCanvasElement
 
-    if (!ctx1 || !ctx2 || !ctx3) return;
+    if (!ctx1 || !ctx2 || !ctx3) {
+      console.error("Chart canvas elements not found")
+      return
+    }
 
     if (reportType === "facility-usage") {
       const commonOptions = {
@@ -73,26 +94,43 @@ const ExportPdfPage: FC = () => {
         },
         plugins: {
           legend: {
-            position: 'bottom' as const,
+            position: "bottom" as const,
+            labels: {
+              color: "#000000",
+              font: {
+                size: 12,
+              },
+            },
+          },
+          title: {
+            display: true,
+            font: { size: 16, weight: "bold" as const },
           },
         },
-      };
-    
-      const fixedWidth = 500;
-      const fixedHeight = 300;
-    
-      // Force charts to a new page
-      ctx1.setAttribute("style", "page-break-before: always; break-before: page;");
-    
-      ctx1.width = fixedWidth;
-      ctx1.height = fixedHeight;
-    
-      ctx2.width = fixedWidth;
-      ctx2.height = fixedHeight;
-    
-      ctx3.width = fixedWidth;
-      ctx3.height = fixedHeight;
-    
+      }
+
+      const fixedWidth = 500
+      const fixedHeight = 300
+
+      // Set canvas dimensions and styles
+      ctx1.width = fixedWidth
+      ctx1.height = fixedHeight
+      ctx1.style.pageBreakBefore = "always"
+      ctx1.style.breakBefore = "page"
+      ctx1.style.marginTop = "20px"
+
+      ctx2.width = fixedWidth
+      ctx2.height = fixedHeight
+      ctx2.style.pageBreakBefore = "always"
+      ctx2.style.breakBefore = "page"
+      ctx2.style.marginTop = "20px"
+
+      ctx3.width = fixedWidth
+      ctx3.height = fixedHeight
+      ctx3.style.pageBreakBefore = "always"
+      ctx3.style.breakBefore = "page"
+      ctx3.style.marginTop = "20px"
+
       const bookingsChart = new Chart(ctx1, {
         type: "bar",
         data: {
@@ -101,46 +139,43 @@ const ExportPdfPage: FC = () => {
             {
               label: "Bookings",
               data: reportData.data.map((d: any) => d.number_of_bookings),
-              backgroundColor: reportData.data.
-              //@ts-ignore
-              map((_entry, index) => ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"][index % 5]),
+              backgroundColor: reportData.data.map(
+                (_entry: any, index: number) => ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"][index % 5],
+              ),
             },
             {
               label: "Events",
               data: reportData.data.map((d: any) => d.number_of_events),
-              backgroundColor: reportData.data.
-              //@ts-ignore
-              map((_entry, index) => ["#A4DE6C", "#D0ED57", "#8884D8", "#FF8042", "#0088FE"][index % 5]),
-            }
-          ]
+              backgroundColor: reportData.data.map(
+                (_entry: any, index: number) => ["#A4DE6C", "#D0ED57", "#8884D8", "#FF8042", "#0088FE"][index % 5],
+              ),
+            },
+          ],
         },
         options: {
           ...commonOptions,
+          plugins: {
+            ...commonOptions.plugins,
+            title: {
+              ...commonOptions.plugins.title,
+              text: "Facility Bookings and Events",
+            },
+          },
           scales: {
             x: {
               ticks: {
-                autoSkip: false,
+                autoSkip: true,
                 maxRotation: 45,
-                minRotation: 45
-              }
+                minRotation: 45,
+              },
             },
             y: {
-              beginAtZero: true
+              beginAtZero: true,
             },
           },
-          plugins: {
-            tooltip: {
-              enabled: true
-            },
-            legend: {
-              position: 'top'
-            }
-          }
         },
-        
-      });
-      
-    
+      })
+
       const hoursChart = new Chart(ctx2, {
         type: "line",
         data: {
@@ -169,103 +204,134 @@ const ExportPdfPage: FC = () => {
               pointBackgroundColor: "#FF6384",
               pointHoverRadius: 8,
               pointHoverBackgroundColor: "#FF6384",
-            }
-          ]
+            },
+          ],
         },
         options: {
           ...commonOptions,
+          plugins: {
+            ...commonOptions.plugins,
+            title: {
+              ...commonOptions.plugins.title,
+              text: "Facility Activity Trends",
+            },
+          },
           scales: {
             x: {
               ticks: {
-                autoSkip: false,
+                autoSkip: true,
                 maxRotation: 45,
-                minRotation: 45
-              }
+                minRotation: 45,
+              },
             },
             y: {
-              beginAtZero: true
+              beginAtZero: true,
             },
           },
-          plugins: {
-            tooltip: {
-              enabled: true
-            },
-            legend: {
-              position: 'top'
-            }
-          }
-        }
-      });
-      
+        },
+      })
+
       const pieChart = new Chart(ctx3, {
         type: "pie",
         data: {
           labels: reportData.data.map((d: any) => d.facility_name),
-          datasets: [{
-            label: "Events",
-            data: reportData.data.map((d: any) => d.number_of_events),
-            backgroundColor: [
-              "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", 
-              "#FF9F40", "#FFB6C1", "#00E676", "#673AB7", "#FF5722"
-            ],
-          }]
+          datasets: [
+            {
+              label: "Events",
+              data: reportData.data.map((d: any) => d.number_of_events),
+              backgroundColor: [
+                "#FF6384",
+                "#36A2EB",
+                "#FFCE56",
+                "#4BC0C0",
+                "#9966FF",
+                "#FF9F40",
+                "#FFB6C1",
+                "#00E676",
+                "#673AB7",
+                "#FF5722",
+              ],
+            },
+          ],
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false, // ✅ Prevent cutoff when size is fixed
-          layout: {
-            padding: 20 // ✅ Optional: give space around chart
+          responsive: false,
+          maintainAspectRatio: false,
+          animation: {
+            onComplete: onChartRendered,
           },
           plugins: {
             title: {
               display: true,
-              text: "Pie Chart illustration Of Bookings Per Facility",
-              font: { size: 18 }
+              text: "Events Distribution by Facility",
+              font: { size: 16, weight: "bold" as const },
             },
             tooltip: {
               callbacks: {
-                label: function (tooltipItem) {
-                  let label = tooltipItem.label || '';
-                  if (label) label += ': ';
-                  //@ts-ignore
-                  const total = reportData.data.reduce((sum, item) => sum + item.number_of_events, 0);
-                  //@ts-ignore
-                  label += `${tooltipItem.raw} events (${((tooltipItem.raw / total) * 100).toFixed(1)}%)`;
-                  return label;
-                }
-              }
+                label: (tooltipItem) => {
+                  let label = tooltipItem.label || ""
+                  if (label) label += ": "
+                  const total = reportData.data.reduce(
+                    (sum: number, item: any) => sum + (item.number_of_events || 0),
+                    0,
+                  )
+                  label += `${tooltipItem.raw} events (${(((tooltipItem.raw as number) / total) * 100).toFixed(1)}%)`
+                  return label
+                },
+              },
             },
             legend: {
-              position: 'bottom',
+              position: "bottom",
               labels: {
                 usePointStyle: true,
-                pointStyle: 'circle',
-                color: '#ff0000', // ✅ Ensure visible on dark background
+                pointStyle: "circle",
+                color: "#000000",
                 font: {
-                  size: 14
-                }
-              }
-            }
-          }
-        }
-      });      
-      
-      chartInstances.push(bookingsChart, hoursChart, pieChart);
+                  size: 12,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      chartInstances.push(bookingsChart, hoursChart, pieChart)
     }
-    
+
     if (reportType === "maintenance") {
+      // Ensure data is properly formatted
       const processedData = (reportData?.data || []).map((row: any) => ({
-        priority: row.priority
-          ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1)
-          : "Unknown",
+        priority: row.priority ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1) : "Unknown",
         totalReports: row.count ?? 0,
         resolved: row.resolved ?? 0,
         avgResolutionTime:
-          typeof row.avg_resolution_time === "number"
-            ? parseFloat(row.avg_resolution_time.toFixed(2))
-            : 3.34,
-      }));
-      
+          row.avg_resolution_time !== "N/A" && !isNaN(Number.parseFloat(row.avg_resolution_time))
+            ? Number.parseFloat(row.avg_resolution_time)
+            : 0,
+      }))
+
+      // Set canvas dimensions and styles
+      const fixedWidth = 500
+      const fixedHeight = 300
+
+      ctx1.width = fixedWidth
+      ctx1.height = fixedHeight
+      ctx1.style.pageBreakBefore = "always"
+      ctx1.style.breakBefore = "page"
+      ctx1.style.marginTop = "20px"
+
+      ctx2.width = fixedWidth
+      ctx2.height = fixedHeight
+      ctx2.style.pageBreakBefore = "always"
+      ctx2.style.breakBefore = "page"
+      ctx2.style.marginTop = "20px"
+
+      ctx3.width = fixedWidth
+      ctx3.height = fixedHeight
+      ctx3.style.pageBreakBefore = "always"
+      ctx3.style.breakBefore = "page"
+      ctx3.style.marginTop = "20px"
+
       const barChart = new Chart(ctx1, {
         type: "bar",
         data: {
@@ -274,37 +340,30 @@ const ExportPdfPage: FC = () => {
             {
               label: "Total Reports",
               data: processedData.map((d: any) => d.totalReports),
-              backgroundColor: [
-                "#FF6384",
-                "#36A2EB",
-                "#FFCE56",
-                "#4BC0C0",
-                "#9966FF"
-              ],
+              backgroundColor: processedData.map(
+                (_d: any, index: number) => ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"][index % 5],
+              ),
             },
             {
               label: "Resolved",
               data: processedData.map((d: any) => d.resolved),
-              backgroundColor: [
-                "#A4DE6C",
-                "#D0ED57",
-                "#8884D8",
-                "#FF8042",
-                "#0088FE"
-              ],
-            }
+              backgroundColor: processedData.map(
+                (_d: any, index: number) => ["#A4DE6C", "#D0ED57", "#8884D8", "#FF8042", "#0088FE"][index % 5],
+              ),
+            },
           ],
         },
         options: {
           responsive: false,
+          maintainAspectRatio: false,
           animation: {
             onComplete: onChartRendered,
           },
           plugins: {
             title: {
               display: true,
-              text: "Maintenance Report by Priority",
-              font: { size: 18 }
+              text: "Maintenance Reports by Priority",
+              font: { size: 16, weight: "bold" as const },
             },
             tooltip: {
               mode: "index",
@@ -312,7 +371,13 @@ const ExportPdfPage: FC = () => {
             },
             legend: {
               display: true,
-              position: "top",
+              position: "bottom",
+              labels: {
+                color: "#000000",
+                font: {
+                  size: 12,
+                },
+              },
             },
           },
           scales: {
@@ -331,187 +396,302 @@ const ExportPdfPage: FC = () => {
             },
           },
         },
-      });
-      
+      })
+
+      // Filter out items with N/A resolution time for the line chart
+      const filteredData = processedData.
+      //@ts-ignore
+      filter((item) => item.avgResolutionTime > 0)
+
       const lineChart = new Chart(ctx2, {
         type: "line",
         data: {
-          labels: reportData.data.map((d: any) => d.priority),
-          datasets: [{
-            label: "Avg. Resolution Time (hrs)",
-            data: reportData.data.map((d: any) => d.avg_resolution_time),
-            borderColor: "#2196f3",
-            fill: false
-          }]
-          
-        },
-        
-        options: { responsive: false, animation: { onComplete: onChartRendered } }
-        
-      });
-      
-      const pieChart = new Chart(ctx3, {
-        type: "pie",
-        data: {
-          labels: reportData.data.map((d: any) =>
-            d.priority ? d.priority.charAt(0).toUpperCase() + d.priority.slice(1) : "Unknown"
-          ),
-          datasets: [{
-            label: "Total Reports",
-            data: reportData.data.map((d: any) => d.count ?? 0),
-            backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"]
-          }]
+          labels: filteredData.map((d: any) => d.priority),
+          datasets: [
+            {
+              label: "Avg. Resolution Time (hrs)",
+              data: filteredData.map((d: any) => d.avgResolutionTime),
+              borderColor: "#2196f3",
+              backgroundColor: "rgba(33, 150, 243, 0.2)",
+              fill: true,
+              tension: 0.4,
+              borderWidth: 3,
+              pointRadius: 6,
+              pointBackgroundColor: "#2196f3",
+            },
+          ],
         },
         options: {
-          responsive: true,
+          responsive: false,
           maintainAspectRatio: false,
+          animation: {
+            onComplete: onChartRendered,
+          },
           plugins: {
             title: {
               display: true,
-              text: "Pie Chart illustration Of Maintenance by Priority",
-              font: { size: 18 }
+              text: "Average Resolution Time by Priority",
+              font: { size: 16, weight: "bold" as const },
             },
             legend: {
-              
               position: "bottom",
               labels: {
-                color: "#ff0000",
+                color: "#000000",
                 font: {
-                  size: 14
-                }
-              }
+                  size: 12,
+                },
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: "Hours",
+              },
+            },
+          },
+        },
+      })
+
+      const pieChart = new Chart(ctx3, {
+        type: "pie",
+        data: {
+          labels: processedData.map((d: any) => d.priority),
+          datasets: [
+            {
+              label: "Total Reports",
+              data: processedData.map((d: any) => d.totalReports),
+              backgroundColor: [
+                "#FF6384",
+                "#36A2EB",
+                "#FFCE56",
+                "#4BC0C0",
+                "#9966FF",
+                "#FF9F40",
+                "#FFB6C1",
+                "#00E676",
+                "#673AB7",
+                "#FF5722",
+              ],
+            },
+          ],
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          animation: {
+            onComplete: onChartRendered,
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: "Distribution of Maintenance Issues by Priority",
+              font: { size: 16, weight: "bold" as const },
+            },
+            legend: {
+              position: "bottom",
+              labels: {
+                usePointStyle: true,
+                pointStyle: "circle",
+                color: "#000000",
+                font: {
+                  size: 12,
+                },
+              },
             },
             tooltip: {
-              enabled: true
-            }
+              callbacks: {
+                label: (tooltipItem) => {
+                  let label = tooltipItem.label || ""
+                  if (label) label += ": "
+                  const total = processedData.reduce((sum: number, item: any) => sum + item.totalReports, 0)
+                  label += `${tooltipItem.raw} reports (${(((tooltipItem.raw as number) / total) * 100).toFixed(1)}%)`
+                  return label
+                },
+              },
+            },
           },
-          layout: {
-            padding: 20
-          }
-        }
-      });
-      
-      chartInstances.push(barChart, lineChart, pieChart);
+        },
+      })
+
+      chartInstances.push(barChart, lineChart, pieChart)
     }
-  };
+  }
 
   const handleDownloadPdf = async () => {
-    if (!reportRef.current) return;
-    setGeneratingPdf(true);
+    if (!reportRef.current) return
+    setGeneratingPdf(true)
+
     try {
-      const canvas = await html2canvas(reportRef.current, { scale: 2 });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      // Create a new PDF document
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = pdf.internal.pageSize.getHeight()
 
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-      heightLeft -= pageHeight;
+      // Capture the report header
+      const headerElement = document.getElementById("report-header")
+      if (headerElement) {
+        const headerCanvas = await html2canvas(headerElement, {
+          scale: 2,
+          backgroundColor: "#ffffff",
+        })
+        const headerImgData = headerCanvas.toDataURL("image/png")
+        const headerImgHeight = (headerCanvas.height * pdfWidth) / headerCanvas.width
 
-      while (heightLeft > 0) {
-        position -= pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-        heightLeft -= pageHeight;
+        // Add header to first page
+        pdf.addImage(headerImgData, "PNG", 0, 0, pdfWidth, headerImgHeight)
+
+        // Move position down for table
+        let yPosition = headerImgHeight + 10
+
+        // Capture the table
+        const tableElement = document.getElementById("report-table")
+        if (tableElement) {
+          const tableCanvas = await html2canvas(tableElement, {
+            scale: 2,
+            backgroundColor: "#ffffff",
+          })
+          const tableImgData = tableCanvas.toDataURL("image/png")
+          const tableImgHeight = (tableCanvas.height * pdfWidth) / tableCanvas.width
+
+          // Check if table fits on first page
+          if (yPosition + tableImgHeight > pdfHeight) {
+            pdf.addPage()
+            yPosition = 10
+          }
+
+          // Add table to PDF
+          pdf.addImage(tableImgData, "PNG", 0, yPosition, pdfWidth, tableImgHeight)
+          yPosition += tableImgHeight + 10
+        }
+
+        // Add each chart on a new page
+        for (let i = 1; i <= 3; i++) {
+          const chartElement = document.getElementById(`chart${i}`)
+          if (chartElement) {
+            // Always start a new page for each chart
+            pdf.addPage()
+
+            const chartCanvas = await html2canvas(chartElement, {
+              scale: 2,
+              backgroundColor: "#ffffff",
+            })
+            const chartImgData = chartCanvas.toDataURL("image/png")
+            const chartImgWidth = pdfWidth - 20 // Add some margin
+            const chartImgHeight = (chartCanvas.height * chartImgWidth) / chartCanvas.width
+
+            // Center the chart on the page
+            const xPosition = (pdfWidth - chartImgWidth) / 2
+            const yPosition = (pdfHeight - chartImgHeight) / 2
+
+            pdf.addImage(chartImgData, "PNG", xPosition, yPosition, chartImgWidth, chartImgHeight)
+          }
+        }
+
+        // Save the PDF
+        pdf.save(`${reportData?.title || "iReserve_Report"}.pdf`)
+
+        // If autoDownload is true, navigate back after a short delay
+        if (autoDownload) {
+          setTimeout(() => {
+            navigate(-1)
+          }, 1000)
+        }
       }
-
-      pdf.save(`${reportData?.title || "iReserve_Report"}.pdf`);
     } catch (err) {
-      console.error("PDF generation failed:", err);
+      console.error("PDF generation failed:", err)
+      setError("Failed to generate PDF. Please try again.")
+    } finally {
+      setGeneratingPdf(false)
     }
-    setGeneratingPdf(false);
-  };
+  }
 
   const renderTable = () => {
+    if (!reportData?.data) return null
+
     if (reportType === "facility-usage") {
       return (
         <TableContainer
           component={Paper}
           sx={{
-            breakInside: 'avoid', // Prevent break inside container
-            pageBreakInside: 'avoid', // For printing/PDFs
-            overflowX: 'auto',
-            paddingBottom: '60px', // Adds bottom spacing for cleanliness
+            width: "100%",
+            overflowX: "auto",
+            pageBreakInside: "avoid",
+            breakInside: "avoid",
+            marginBottom: "20px",
           }}
->
-  <Table
-    size="small"
-    sx={{
-      tableLayout: 'fixed',
-      width: '100%',
-      pageBreakInside: 'auto',
-    }}
-  >
-    <TableHead>
-      <TableRow>
-        <TableCell>Facility</TableCell>
-        <TableCell align="right">Bookings</TableCell>
-        <TableCell align="right">Events</TableCell>
-        <TableCell align="right">Total Hours</TableCell>
-        <TableCell align="right">Utilization (%)</TableCell>
-      </TableRow>
-    </TableHead>
-    <TableBody>
-      {// @ts-ignore
-      reportData.data.map((row) => {
-        const calculatedUtilization = Math.min(
-          row.utilization ??
-            Math.round(
-              (((row.number_of_events ?? 0) + 7.5) *
-                (row.total_event_hours ?? 0) *
-                (row.number_of_bookings ?? 0) +
-                5) *
-                100 /
-                400
-            ),
-          98
-        );
+        >
+          <Table size="small" sx={{ tableLayout: "fixed" }}>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell sx={{ fontWeight: "bold" }}>Facility</TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Bookings
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Events
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Total Hours
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Utilization (%)
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {reportData.data.map((row: any, index: number) => {
+                const calculatedUtilization = Math.min(
+                  row.utilization ??
+                    Math.round(
+                      ((((row.number_of_events ?? 0) + 7.5) *
+                        (row.total_event_hours ?? 0) *
+                        (row.number_of_bookings ?? 0) +
+                        5) *
+                        100) /
+                        400,
+                    ),
+                  98,
+                )
 
-        const bgColor =
-          calculatedUtilization > 75
-            ? 'success.main'
-            : calculatedUtilization > 50
-            ? 'warning.main'
-            : 'error.main';
+                const bgColor =
+                  calculatedUtilization > 75
+                    ? "#e8f5e9" // light green
+                    : calculatedUtilization > 50
+                      ? "#fff8e1" // light amber
+                      : "#ffebee" // light red
 
-        return (
-          <TableRow
-            key={row.facility_id}
-            sx={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-          >
-            <TableCell component="th" scope="row">
-              {row.facility_name ?? 'Unknown'}
-            </TableCell>
-            <TableCell align="right">{row.number_of_bookings}</TableCell>
-            <TableCell align="right">{row.number_of_events}</TableCell>
-            <TableCell align="right">{Math.round(row.total_event_hours)}</TableCell>
-            <TableCell align="right">
-              <Box
-                sx={{
-                  display: 'inline-block',
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: '16px',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  color: 'white',
-                  backgroundColor: bgColor,
-                }}
-              >
-                {`${calculatedUtilization}%`}
-              </Box>
-            </TableCell>
-          </TableRow>
-        );
-      })}
-    </TableBody>
-  </Table>
-</TableContainer>
-
-      );
+                return (
+                  <TableRow
+                    key={row.facility_id || index}
+                    sx={{
+                      backgroundColor: index % 2 === 0 ? "#ffffff" : "#fafafa",
+                      "&:hover": { backgroundColor: "#f1f1f1" },
+                    }}
+                  >
+                    <TableCell>{row.facility_name ?? "Unknown"}</TableCell>
+                    <TableCell align="right">{row.number_of_bookings}</TableCell>
+                    <TableCell align="right">{row.number_of_events}</TableCell>
+                    <TableCell align="right">{row.total_event_hours}</TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{
+                        backgroundColor: bgColor,
+                        fontWeight: "bold",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      {`${calculatedUtilization}%`}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )
     }
 
     if (reportType === "maintenance") {
@@ -519,101 +699,154 @@ const ExportPdfPage: FC = () => {
         <TableContainer
           component={Paper}
           sx={{
-            width: '100%',
-            overflowX: 'auto',
-            pageBreakInside: 'avoid',
-            breakInside: 'avoid',
+            width: "100%",
+            overflowX: "auto",
+            pageBreakInside: "avoid",
+            breakInside: "avoid",
+            marginBottom: "20px",
           }}
         >
-          <Table size="small" sx={{ tableLayout: 'fixed' }}>
+          <Table size="small" sx={{ tableLayout: "fixed" }}>
             <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontSize: '0.75rem' }}>Priority</TableCell>
-                <TableCell align="right" sx={{ fontSize: '0.75rem' }}>Total Reports</TableCell>
-                <TableCell align="right" sx={{ fontSize: '0.75rem' }}>Resolved</TableCell>
-                <TableCell
-                  align="right"
-                  sx={{ whiteSpace: 'normal', fontSize: '0.75rem' }}
-                >
-                  Avg. Resolution<br />Time (hrs)
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell sx={{ fontWeight: "bold" }}>Priority</TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Total Reports
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Resolved
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Avg. Resolution Time (hrs)
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                  Resolution Rate (%)
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {reportData?.data?.map((row: any, idx: number) => (
-                <TableRow key={idx}>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>{row.priority}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.75rem' }}>{row.count}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.75rem' }}>{row.resolved}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
-                    {Math.round(row.avg_resolution_time / 36)}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {reportData.data.map((row: any, idx: number) => {
+                const resolutionRate = row.count > 0 ? ((row.resolved / row.count) * 100).toFixed(1) : "0.0"
+
+                const bgColor =
+                  Number.parseFloat(resolutionRate) > 80
+                    ? "#e8f5e9" // light green
+                    : Number.parseFloat(resolutionRate) > 50
+                      ? "#fff8e1" // light amber
+                      : "#ffebee" // light red
+
+                return (
+                  <TableRow
+                    key={idx}
+                    sx={{
+                      backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa",
+                      "&:hover": { backgroundColor: "#f1f1f1" },
+                    }}
+                  >
+                    <TableCell>
+                      {row.priority ? row.priority.charAt(0).toUpperCase() + row.priority.slice(1) : "Unknown"}
+                    </TableCell>
+                    <TableCell align="right">{row.count}</TableCell>
+                    <TableCell align="right">{row.resolved}</TableCell>
+                    <TableCell align="right">
+                      {row.avg_resolution_time === "N/A"
+                        ? "N/A"
+                        : Number.parseFloat(row.avg_resolution_time).toFixed(1)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ backgroundColor: bgColor }}>
+                      {resolutionRate}%
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </TableContainer>
-
-      );
+      )
     }
 
-    return null;
-  };
+    return null
+  }
 
-  const renderReportContent = () => (
-    <Box p={3}>
-      {!autoDownload && (
-        <Button
-          variant="contained"
-          startIcon={<PdfIcon />}
-          onClick={handleDownloadPdf}
-          disabled={generatingPdf}
-        >
-          {generatingPdf ? <CircularProgress size={24} color="inherit" /> : "Download PDF"}
-        </Button>
-      )}
+  const renderReportHeader = () => {
+    if (!reportData) return null
 
+    return (
       <Box
-        ref={reportRef}
-        sx={{ position: "absolute", left: "-9999px", width: "800px", bgcolor: "white", p: 2 }}
+        id="report-header"
+        sx={{
+          padding: "20px",
+          marginBottom: "20px",
+          backgroundColor: "#f5f5f5",
+          borderRadius: "4px",
+          textAlign: "center",
+        }}
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "green" }} gutterBottom>
-        📊 iReserve System Report Overview
+        <Typography variant="h5" component="h2" gutterBottom>
+          {reportData.title}
         </Typography>
-            {/* Report Title & Period */}
-              <Typography variant="h5" sx={{ fontWeight: "bold", color: "green" }} gutterBottom>
-                {reportData?.title || "Facility Usage Report"}
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "green" }} gutterBottom>
-                {reportData?.period || ""}
-              </Typography>
+        <Typography variant="subtitle1">Generated on: {new Date().toLocaleDateString()}</Typography>
+      </Box>
+    )
+  }
 
-        {renderTable()}
-
-        <Box mt={28} display="flex" justifyContent="center" flexWrap="wrap" gap={2}>
-        <p style={{ pageBreakBefore: 'always', breakBefore: 'page' }}></p>
-          <canvas id="chart1" width="330" height="280" />
-          <canvas id="chart2" width="330" height="280" />
-          <section>
-            <Box mt={60} display="flex" justifyContent="center" flexWrap="wrap" gap={2} sx={{ width: '500px', height: '400px', overflow: 'hidden' }}>
-                      <canvas
-                      id="chart3"
-                      style={{
-                        width: "100%",
-                        maxWidth: "500px",
-                        height: "auto"
-                      }}
-                    />
-                    </Box>
-          </section>
-          
-
+  return (
+    <Box
+      sx={{
+        maxWidth: "100%",
+        margin: "0 auto",
+        padding: "20px",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Report
+        </Typography>
+        <Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PdfIcon />}
+            onClick={handleDownloadPdf}
+            disabled={generatingPdf || !chartsReady}
+          >
+            {generatingPdf ? (
+              <>
+                Generating PDF...
+                <CircularProgress size={20} sx={{ ml: 1, color: "white" }} />
+              </>
+            ) : (
+              "Download PDF"
+            )}
+          </Button>
+          <Button variant="outlined" color="secondary" onClick={() => navigate(-1)} sx={{ ml: 2 }}>
+            Back
+          </Button>
         </Box>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <div ref={reportRef}>
+        {renderReportHeader()}
+        <div id="report-table">{renderTable()}</div>
+        <canvas id="chart1"></canvas>
+        <canvas id="chart2"></canvas>
+        <canvas id="chart3"></canvas>
+      </div>
     </Box>
-  );
+  )
+}
 
-  return renderReportContent();
-};
-
-export default ExportPdfPage;
+export default ExportPdfPage
