@@ -2217,7 +2217,7 @@ const fetchMaintenancePriorities = async () => {
         }}
       >
         <BusinessIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-        Enterprise System Reports
+        iReserve System Reports
       </Typography>
 
       <Grid container spacing={3}>
