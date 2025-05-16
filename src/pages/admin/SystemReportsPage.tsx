@@ -89,6 +89,7 @@ import {
   Speed as SpeedIcon,
   AttachMoney as MoneyIcon,
 } from "@mui/icons-material"
+import { api } from "@/services/api"
 
 // Initial facility categories mapping (will be updated with backend data)
 const initialFacilityCategories = {
@@ -280,19 +281,16 @@ const SystemReportsPage = () => {
   const fetchFacilities = async () => {
     setLoadingFacilities(true)
     try {
-      const token = localStorage.getItem("token")
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      }
 
       // Fetch facilities from backend
-      const res = await fetch("http://localhost:5000/api/v1/facilities", { headers })
+      const res = await api.get("/facilities");
+      const data = res.data; // Axios puts response JSON here
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch facilities")
+      // Optional: if you want to check response manually
+      if (!data) {
+        throw new Error("Failed to fetch facilities");
       }
 
-      const data = await res.json()
       console.log("Fetched facilities:", data)
 
       // Process facilities and update categories
@@ -334,56 +332,50 @@ const SystemReportsPage = () => {
   }
 
   // Fetch maintenance priorities from backend
-  const fetchMaintenancePriorities = async () => {
-    setLoadingPriorities(true)
-    try {
-      const token = localStorage.getItem("token")
-      const headers = {
+  // Fetch maintenance priorities from backend
+const fetchMaintenancePriorities = async () => {
+  setLoadingPriorities(true);
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await api.get("/maintenance/priorities", {
+      headers: {
         Authorization: `Bearer ${token}`,
-      }
+      },
+    });
 
-      // Fetch maintenance priorities from backend
-      // Note: Adjust the endpoint to match your actual API
-      const res = await fetch("http://localhost:5000/api/v1/maintenance/priorities", { headers })
+    // Axios automatically parses JSON, use res.data
+    const fetchedPriorities: MaintenancePriority[] = res.data.data || [];
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch maintenance priorities")
-      }
+    console.log("Fetched maintenance priorities:", fetchedPriorities);
 
-      const data = await res.json()
-      console.log("Fetched maintenance priorities:", data)
+    // Extract priority names and sort by level if available
+    const priorityNames = fetchedPriorities
+      .sort((a, b) => {
+        if (a.level !== undefined && b.level !== undefined) {
+          return a.level - b.level;
+        }
+        return a.name.localeCompare(b.name);
+      })
+      .map((priority) => priority.name);
 
-      // Process priorities
-      const fetchedPriorities: MaintenancePriority[] = data.data || []
-
-      // Extract priority names and sort by level if available
-      const priorityNames = fetchedPriorities
-        .sort((a, b) => {
-          // Sort by level if available, otherwise by name
-          if (a.level !== undefined && b.level !== undefined) {
-            return a.level - b.level
-          }
-          return a.name.localeCompare(b.name)
-        })
-        .map((priority) => priority.name)
-
-      // Always include "All" as the first option
-      if (priorityNames.length > 0) {
-        setMaintenancePriorities(["All", ...priorityNames])
-      } else {
-        // Fall back to initial priorities if none were found
-        setMaintenancePriorities(initialMaintenancePriorities)
-      }
-
-      setLastPriorityFetchTime(new Date())
-    } catch (err) {
-      console.error("Error fetching maintenance priorities:", err)
-      // Fall back to initial priorities if fetch fails
-      setMaintenancePriorities(initialMaintenancePriorities)
-    } finally {
-      setLoadingPriorities(false)
+    // Always include "All" as the first option
+    if (priorityNames.length > 0) {
+      setMaintenancePriorities(["All", ...priorityNames]);
+    } else {
+      setMaintenancePriorities(initialMaintenancePriorities);
     }
+
+    setLastPriorityFetchTime(new Date());
+  } catch (err) {
+    console.error("Error fetching maintenance priorities:", err);
+    setMaintenancePriorities(initialMaintenancePriorities);
+  } finally {
+    setLoadingPriorities(false);
   }
+};
+
 
   // Helper function to categorize facilities by name if backend doesn't provide categories
   const categorizeByName = (facilityName: string): string => {
@@ -471,9 +463,6 @@ const SystemReportsPage = () => {
       setError(null)
 
       const token = localStorage.getItem("token")
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      }
 
       // For facility usage reports, check if we need to refresh facility data
       if (reportType === "facility-usage" && facilityType === "All" && specificFacility === "All") {
@@ -489,87 +478,91 @@ const SystemReportsPage = () => {
         }
       }
 
-      if (reportType === "maintenance") {
-        const res = await fetch("http://localhost:5000/api/v1/maintenance", { headers })
+    if (reportType === "maintenance") {
+  const token = localStorage.getItem("token");
 
-        if (!res.ok) throw new Error("Failed to fetch maintenance data")
+  const res = await api.get("/maintenance", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-        const raw = await res.json()
-        console.log("Raw maintenance data:", raw)
+  const raw = res.data;
+  console.log("Raw maintenance data:", raw);
 
-        const priorityStats = {}
+  const priorityStats: Record<string, {
+    count: number;
+    resolved: number;
+    totalResolutionTime: number;
+  }> = {};
 
-        for (const report of raw.data || []) {
-          const p = report.priority.toLowerCase() // normalize
+  for (const report of raw.data || []) {
+    const p = report.priority.toLowerCase(); // normalize
 
-          // Skip if priority filter is applied and doesn't match
-          if (maintenancePriority !== "All" && p !== maintenancePriority.toLowerCase()) {
-            continue
-          }
+    // Skip if priority filter is applied and doesn't match
+    if (maintenancePriority !== "All" && p !== maintenancePriority.toLowerCase()) {
+      continue;
+    }
 
-          //@ts-ignore
-          priorityStats[p] = priorityStats[p] || {
-            count: 0,
-            resolved: 0,
-            totalResolutionTime: 0,
-          }
-          //@ts-ignore
-          priorityStats[p].count++
+    if (!priorityStats[p]) {
+      priorityStats[p] = {
+        count: 0,
+        resolved: 0,
+        totalResolutionTime: 0,
+      };
+    }
 
-          if (report.status === "completed" && report.completion_date && report.reported_date) {
-            //@ts-ignore
-            priorityStats[p].resolved++
+    priorityStats[p].count++;
 
-            const reported = new Date(report.reported_date)
-            const completed = new Date(report.completion_date)
-            //@ts-ignore
-            const hours = (completed - reported) / (1000 * 60 * 60)
-            //@ts-ignore
-            priorityStats[p].totalResolutionTime += hours
-          }
-        }
+    if (report.status === "completed" && report.completion_date && report.reported_date) {
+      priorityStats[p].resolved++;
 
-        const data = Object.entries(priorityStats).map(([priority, stats]) => ({
-          priority,
-          //@ts-ignore
-          count: stats.count,
-          //@ts-ignore
-          resolved: stats.resolved,
-          //@ts-ignore
-          avg_resolution_time:
-          //@ts-ignore
-            stats.resolved > 0
-              ? //@ts-ignore
-                (stats.totalResolutionTime / stats.resolved).toFixed(2)
-              : "N/A",
-        }))
+      const reported = new Date(report.reported_date);
+      const completed = new Date(report.completion_date);
+      const hours = (completed.getTime() - reported.getTime()) / (1000 * 60 * 60);
+      priorityStats[p].totalResolutionTime += hours;
+    }
+  }
 
-        // Update the title to reflect the filter
-        const reportTitle =
-          maintenancePriority === "All" ? "Maintenance Report" : `Maintenance Report - ${maintenancePriority} Priority`
+  const data = Object.entries(priorityStats).map(([priority, stats]) => ({
+    priority,
+    count: stats.count,
+    resolved: stats.resolved,
+    avg_resolution_time: stats.resolved > 0
+      ? (stats.totalResolutionTime / stats.resolved).toFixed(2)
+      : "N/A",
+  }));
 
-        setReportData({
-          title: reportTitle,
-          period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
-          data,
-        })
+  const reportTitle =
+    maintenancePriority === "All"
+      ? "Maintenance Report"
+      : `Maintenance Report - ${maintenancePriority} Priority`;
 
-        // Automatically show advanced report
-        setShowAdvancedReport(true)
-        return // ✅ Exit after handling maintenance
-      }
+  setReportData({
+    title: reportTitle,
+    period: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
+    data,
+  });
+
+  setShowAdvancedReport(true);
+  return; // ✅ Exit after handling maintenance
+}
 
       // Default: Facility Usage Report
       const [bookingsRes, eventsRes] = await Promise.all([
-        fetch("http://localhost:5000/api/v1/bookings", { headers }),
-        fetch("http://localhost:5000/api/v1/events"),
-      ])
+        api.get("/bookings", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        api.get("/events"), // Assuming no auth needed
+      ]);
 
-      if (!bookingsRes.ok) throw new Error("Failed to fetch bookings")
-      if (!eventsRes.ok) throw new Error("Failed to fetch events")
+      if (!bookingsRes.data) throw new Error("Failed to fetch bookings")
+      if (!eventsRes.data) throw new Error("Failed to fetch events")
 
-      const bookingsData = await bookingsRes.json()
-      const eventsData = await eventsRes.json()
+      const bookingsData = bookingsRes.data;
+      const eventsData = eventsRes.data;
 
       const facilityStats = {}
 
@@ -761,7 +754,7 @@ const SystemReportsPage = () => {
                   </Avatar>
                 </Box>
                 <Typography variant="h3" sx={{ mb: 1, fontWeight: "bold" }}>
-                  {kpis.totalBookings.toLocaleString()}
+                  {kpis.totalBookings != null ? kpis.totalBookings.toLocaleString() : "0"}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   {kpis?.yoyGrowth !== undefined && kpis.yoyGrowth > 0 ?  (
@@ -870,7 +863,7 @@ const SystemReportsPage = () => {
                   </Avatar>
                 </Box>
                 <Typography variant="h3" sx={{ mb: 1, fontWeight: "bold" }}>
-                  {kpis.totalReports.toLocaleString()}
+                  {kpis.totalBookings != null ? kpis.totalBookings.toLocaleString() : "0"}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   {typeof kpis.yoyChange === "number" && kpis.yoyChange < 0 ? (
@@ -1294,10 +1287,12 @@ const SystemReportsPage = () => {
                   </Typography>
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart
-                      data={reportData.data.map((item: any) => ({
-                        ...item,
-                        priority: item.priority.charAt(0).toUpperCase() + item.priority.slice(1),
-                      }))}
+                      data={Array.isArray(reportData?.data) ? reportData.data.map((item: any) => ({
+                          ...item,
+                          priority: item.priority
+                            ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1)
+                            : "",
+                        })) : []}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="priority" />
@@ -1319,12 +1314,21 @@ const SystemReportsPage = () => {
                     </Typography>
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart
-                        data={reportData.data
-                          .filter((item: any) => item.avg_resolution_time !== "N/A")
-                          .map((item: any) => ({
-                            priority: item.priority.charAt(0).toUpperCase() + item.priority.slice(1),
-                            avg_resolution_time: Number.parseFloat(item.avg_resolution_time),
-                          }))}
+                        data={Array.isArray(reportData?.data)
+                          ? reportData.data
+                              .filter(
+                                (item: any) =>
+                                  item.avg_resolution_time !== "N/A" &&
+                                  typeof item.priority === "string"
+                              )
+                              .map((item: any) => ({
+                                priority:
+                                  item.priority.charAt(0).toUpperCase() +
+                                  item.priority.slice(1),
+                                avg_resolution_time: Number.parseFloat(item.avg_resolution_time),
+                              }))
+                          : []}
+
                       >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="priority" />
@@ -1565,16 +1569,15 @@ const SystemReportsPage = () => {
                     </Typography>
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart
-                        data={reportData.data
-                          .filter((item: any) => item.avg_resolution_time !== "N/A")
-                          .map((item: any) => {
-                            // Define SLA targets by priority (in hours)
-                            const slaTargets = {
+                        data={reportData?.data
+                          ?.filter((item: any) => item.avg_resolution_time !== "N/A" && typeof item.priority === "string")
+                          ?.map((item: any) => {
+                            const slaTargets: Record<string, number> = {
                               critical: 24,
                               high: 48,
                               medium: 72,
                               low: 120,
-                            }
+                            };
                             const slaTarget = slaTargets[item.priority as keyof typeof slaTargets] || 72
                             const avgTime = Number.parseFloat(item.avg_resolution_time)
 
@@ -2491,13 +2494,14 @@ const SystemReportsPage = () => {
                   <Divider sx={{ mb: 3 }} />
 
                   {/* KPI Cards */}
-                  {renderKPICards()}
+                 {(kpis && renderKPICards())}
+
 
                   {/* Data Table */}
                   {renderReportTable()}
 
                   {/* Advanced Charts */}
-                  {showAdvancedReport && renderAdvancedCharts()}
+                 {showAdvancedReport && reportData?.data && renderAdvancedCharts()}
                 </CardContent>
               </Card>
             </Grid>
