@@ -25,7 +25,6 @@ import {
   DialogActions,
   List,
   ListItem,
-  ListItemText,
   Paper,
   Tooltip,
   IconButton,
