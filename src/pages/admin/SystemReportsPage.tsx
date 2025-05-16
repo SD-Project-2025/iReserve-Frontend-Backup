@@ -2004,7 +2004,7 @@ const fetchMaintenancePriorities = async () => {
                                   }}
                                 >
                                   {isNaN(row.avg_resolution_time) || row.avg_resolution_time === "N/A"
-                                    ? "N/A"
+                                    ? "0"
                                     : Number.parseFloat(row.avg_resolution_time).toFixed(1)}
                                 </Typography>
                               </TableCell>

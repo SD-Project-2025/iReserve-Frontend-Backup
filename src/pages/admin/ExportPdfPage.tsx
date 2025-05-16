@@ -621,13 +621,14 @@ const ExportPdfPage: FC = () => {
             pageBreakInside: "avoid",
             breakInside: "avoid",
             marginBottom: "20px",
+            color:"blue",
           }}
         >
-          <Table size="small" sx={{ tableLayout: "fixed" }}>
+          <Table size="small" sx={{ tableLayout: "fixed"}}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+              <TableRow sx={{ backgroundColor: "blue" }}>
                 <TableCell sx={{ fontWeight: "bold" }}>Facility</TableCell>
-                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                <TableCell align="right" sx={{ fontWeight: "bold"}}>
                   Bookings
                 </TableCell>
                 <TableCell align="right" sx={{ fontWeight: "bold" }}>
@@ -636,7 +637,7 @@ const ExportPdfPage: FC = () => {
                 <TableCell align="right" sx={{ fontWeight: "bold" }}>
                   Total Hours
                 </TableCell>
-                <TableCell align="right" sx={{ fontWeight: "bold" }}>
+                <TableCell align="right" sx={{ fontWeight: "bold"}}>
                   Utilization (%)
                 </TableCell>
               </TableRow>
@@ -656,19 +657,12 @@ const ExportPdfPage: FC = () => {
                   98,
                 )
 
-                const bgColor =
-                  calculatedUtilization > 75
-                    ? "#e8f5e9" // light green
-                    : calculatedUtilization > 50
-                      ? "#fff8e1" // light amber
-                      : "#ffebee" // light red
-
                 return (
                   <TableRow
                     key={row.facility_id || index}
                     sx={{
-                      backgroundColor: index % 2 === 0 ? "#ffffff" : "#fafafa",
-                      "&:hover": { backgroundColor: "#f1f1f1" },
+                      backgroundColor: index % 2 === 0 ? "blue" : "blue",
+                      "&:hover": { backgroundColor: "blue" },
                     }}
                   >
                     <TableCell>{row.facility_name ?? "Unknown"}</TableCell>
@@ -678,7 +672,7 @@ const ExportPdfPage: FC = () => {
                     <TableCell
                       align="right"
                       sx={{
-                        backgroundColor: bgColor,
+                        backgroundColor: "blue",
                         fontWeight: "bold",
                         borderRadius: "4px",
                       }}
@@ -704,11 +698,12 @@ const ExportPdfPage: FC = () => {
             pageBreakInside: "avoid",
             breakInside: "avoid",
             marginBottom: "20px",
+            color: "blue",
           }}
         >
           <Table size="small" sx={{ tableLayout: "fixed" }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+              <TableRow sx={{ backgroundColor: "blue" }}>
                 <TableCell sx={{ fontWeight: "bold" }}>Priority</TableCell>
                 <TableCell align="right" sx={{ fontWeight: "bold" }}>
                   Total Reports
@@ -730,16 +725,16 @@ const ExportPdfPage: FC = () => {
 
                 const bgColor =
                   Number.parseFloat(resolutionRate) > 80
-                    ? "#e8f5e9" // light green
+                    ? "blue" // light green
                     : Number.parseFloat(resolutionRate) > 50
-                      ? "#fff8e1" // light amber
-                      : "#ffebee" // light red
+                      ? "blue" // light amber
+                      : "blue" // light red
 
                 return (
                   <TableRow
                     key={idx}
                     sx={{
-                      backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa",
+                      backgroundColor: idx % 2 === 0 ? "blue" : "blue",
                       "&:hover": { backgroundColor: "#f1f1f1" },
                     }}
                   >
@@ -750,7 +745,7 @@ const ExportPdfPage: FC = () => {
                     <TableCell align="right">{row.resolved}</TableCell>
                     <TableCell align="right">
                       {row.avg_resolution_time === "N/A"
-                        ? "N/A"
+                        ? "0"
                         : Number.parseFloat(row.avg_resolution_time).toFixed(1)}
                     </TableCell>
                     <TableCell align="right" sx={{ backgroundColor: bgColor }}>
@@ -780,6 +775,7 @@ const ExportPdfPage: FC = () => {
           backgroundColor: "#f5f5f5",
           borderRadius: "4px",
           textAlign: "center",
+          color: "green",
         }}
       >
         <Typography variant="h5" component="h2" gutterBottom>
@@ -838,15 +834,21 @@ const ExportPdfPage: FC = () => {
         </Alert>
       )}
 
-      <div ref={reportRef}>
+      <section ref={reportRef}>
         {renderReportHeader()}
-        <div id="report-table">{renderTable()}</div>
-        <canvas id="chart1"></canvas>
-        <canvas id="chart2"></canvas>
-        <canvas id="chart3"></canvas>
-      </div>
+        <section id="report-table">{renderTable()}</section>
+        <figure>
+          <canvas id="chart1"></canvas>
+        </figure>
+        <figure>
+          <canvas id="chart2"></canvas>
+        </figure>
+        <figure>
+          <canvas id="chart3"></canvas>
+        </figure>
+      </section>
+
     </Box>
   )
 }
-
 export default ExportPdfPage
