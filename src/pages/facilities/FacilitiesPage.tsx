@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -22,8 +21,9 @@ import {
   type SelectChangeEvent,
   Alert,
   CircularProgress,
+  Rating,
 } from "@mui/material"
-import { Search as SearchIcon } from "@mui/icons-material"
+import { Search as SearchIcon, Star } from "@mui/icons-material"
 import { api } from "@/services/api"
 
 interface Facility {
@@ -54,30 +54,15 @@ const FacilitiesPage = () => {
       try {
         setLoading(true)
         setError(null)
-  
+
+        // Single API call to get facilities with their average ratings
         const response = await api.get("/facilities")
         const facilitiesData: Facility[] = response.data.data
-  
-        // Fetch ratings for each facility
-        const facilitiesWithRatings = await Promise.all(
-          facilitiesData.map(async (facility) => {
-            try {
-              const ratingsRes = await api.get(`/facilities/ratings/`)
-              const ratings = ratingsRes.data.data || []
-              const average =
-                ratings.length > 0
-                  ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / ratings.length
-                  : null
-              return { ...facility, average_rating: average }
-            } catch (err) {
-              console.warn(`Could not fetch ratings for facility ${facility.facility_id}`)
-              return { ...facility, average_rating: null }
-            }
-          })
-        )
-  
-        setFacilities(facilitiesWithRatings)
-        setFilteredFacilities(facilitiesWithRatings)
+
+        // The backend now returns facilities with average_rating and rating_count
+        // No need for separate ratings API calls
+        setFacilities(facilitiesData)
+        setFilteredFacilities(facilitiesData)
       } catch (err) {
         console.error("Error fetching facilities:", err)
         setError("Failed to load facilities. Please try again later.")
@@ -85,7 +70,7 @@ const FacilitiesPage = () => {
         setLoading(false)
       }
     }
-  
+
     fetchFacilities()
   }, [])
 
@@ -232,11 +217,26 @@ const FacilitiesPage = () => {
                         ? `${facility.description.substring(0, 100)}...`
                         : facility.description}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    {facility.average_rating !== null && facility.average_rating !== undefined
-                      ? `Rating: ${facility.average_rating.toFixed(1)} ★`
-                      : "No ratings yet"}
-                  </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      {facility.average_rating !== null && facility.average_rating !== undefined ? (
+                        <>
+                          <Rating
+                            value={facility.average_rating}
+                            precision={0.1}
+                            readOnly
+                            size="small"
+                            emptyIcon={<Star style={{ opacity: 0.55 }} fontSize="inherit" />}
+                          />
+                          <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                            ({facility.average_rating.toFixed(1)})
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No ratings yet
+                        </Typography>
+                      )}
+                    </Box>
                   </CardContent>
                 </CardActionArea>
               </Card>

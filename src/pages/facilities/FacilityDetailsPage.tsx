@@ -40,6 +40,7 @@ import {
 import { api } from "@/services/api"
 import { useAuth } from "@/contexts/AuthContext"
 import LocationMap from "@/services/Map"
+
 interface Facility {
   facility_id: number
   name: string
@@ -53,6 +54,7 @@ interface Facility {
   open_time: string
   close_time: string
   average_rating?: number
+  FacilityRatings?: Rating[]
 }
 
 interface Booking {
@@ -96,14 +98,13 @@ const FacilityDetailsPage = () => {
   const [userRating, setUserRating] = useState<number | null>(null)
   const [comment, setComment] = useState<string>("")
   const [ratingLoading, setRatingLoading] = useState(false)
- 
+
   useEffect(() => {
     const fetchFacilityDetails = async () => {
       try {
         setLoading(true)
         setError(null)
 
-        // Fetch facility data
         const facilityResponse = await api.get(`/facilities/${id}`)
         
         if (!facilityResponse.data?.success) {
@@ -116,8 +117,8 @@ const FacilityDetailsPage = () => {
         }
 
         setFacility(facilityData)
+        setRatings(facilityData.FacilityRatings || [])
 
-        // Fetch bookings data
         try {
           const bookingsResponse = await api.get(`/facilities/${id}/bookings`)
           setBookings(bookingsResponse.data?.data || [])
@@ -126,22 +127,12 @@ const FacilityDetailsPage = () => {
           setBookings([])
         }
 
-        // Fetch events data
         try {
           const eventsResponse = await api.get(`/facilities/${id}/events`)
           setEvents(eventsResponse.data?.data || [])
         } catch (eventsError) {
           console.warn("Failed to fetch events:", eventsError)
           setEvents([])
-        }
-
-        // Fetch ratings data
-        try {
-          const ratingsResponse = await api.get(`/facilities/${id}/ratings`)
-          setRatings(ratingsResponse.data?.data || [])
-        } catch (ratingsError) {
-          console.warn("Failed to fetch ratings:", ratingsError)
-          setRatings([])
         }
 
       } catch (err: any) {
@@ -207,34 +198,20 @@ const FacilityDetailsPage = () => {
   }
 
   const handleRatingSubmit = async () => {
-    if (userRating === null || !facility) return
-    console.log("Submitting rating with:", {
-      facility_id: facility.facility_id,
-      rating: userRating,
-      comment,
-      user_id: user?.id,
-      userExists: !!user
-    });
+    if (userRating === null) return
     
-
     try {
       setRatingLoading(true)
-      const response = await api.post("/facilities/ratings", {  // Changed endpoint to match your route
-        facility_id: facility.facility_id,  // Changed from facilityId to facility_id
+      const response = await api.post(`/facilities/ratings`, {
+        facility_id: id,
         rating: userRating,
         comment,
-        user_id: user?.id  // Changed from userId to user_id
+        user_id: user?.id
       })
-  
+
       if (response.data.success) {
-        // Refresh ratings
-        const ratingsResponse = await api.get(`/facilities/${facility.facility_id}/ratings`)
-        setRatings(ratingsResponse.data?.data || [])
-        
-        // Update facility with new average rating
-        const facilityResponse = await api.get(`/facilities/${facility.facility_id}`)
+        const facilityResponse = await api.get(`/facilities/${id}`)
         setFacility(facilityResponse.data.data)
-        
         setComment("")
         setUserRating(null)
       }
@@ -285,6 +262,9 @@ const FacilityDetailsPage = () => {
     )
   }
 
+  const hasRatings = ratings && ratings.length > 0
+  const averageRating = facility.average_rating !== undefined ? facility.average_rating : null
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4 }}>
@@ -300,11 +280,11 @@ const FacilityDetailsPage = () => {
           <Typography variant="subtitle1" color="text.secondary">
             {facility.type} • {facility.is_indoor ? "Indoor" : "Outdoor"} • Capacity: {facility.capacity}
           </Typography>
-          {facility.average_rating !== undefined && (
+          {averageRating !== null && (
             <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
               <StarIcon color="warning" fontSize="small" />
               <Typography variant="subtitle1" color="text.secondary" sx={{ ml: 0.5 }}>
-                {facility.average_rating.toFixed(1)}/5 ({ratings.length} {ratings.length === 1 ? 'review' : 'reviews'})
+                {averageRating.toFixed(1)}/5 ({ratings.length} {ratings.length === 1 ? 'review' : 'reviews'})
               </Typography>
             </Box>
           )}
@@ -365,16 +345,16 @@ const FacilityDetailsPage = () => {
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                {facility.average_rating !== undefined ? (
+                {averageRating !== null ? (
                   <>
                     <Rating
-                      value={facility.average_rating}
+                      value={averageRating}
                       precision={0.1}
                       readOnly
                       sx={{ mr: 1 }}
                     />
                     <Typography variant="h6">
-                      {facility.average_rating.toFixed(1)} out of 5
+                      {averageRating.toFixed(1)} out of 5
                     </Typography>
                   </>
                 ) : (
@@ -418,7 +398,7 @@ const FacilityDetailsPage = () => {
                 </Box>
               )}
 
-              {ratings.length > 0 ? (
+              {hasRatings ? (
                 <Box>
                   <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                     <CommentIcon color="primary" sx={{ mr: 1 }} />
@@ -574,11 +554,9 @@ const FacilityDetailsPage = () => {
           </Box>
           <br />
           
-                        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                          
-                          <LocationMap Facility={facility} />
-
-                        </Box>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <LocationMap Facility={facility} />
+          </Box>
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -613,18 +591,18 @@ const FacilityDetailsPage = () => {
                     sx={{ ml: 1, textTransform: 'capitalize' }}
                   />
                 </Typography>
-                {facility.average_rating !== undefined && (
+                {averageRating !== null && (
                   <Typography sx={{ display: 'flex', alignItems: 'center' }}>
                     <strong>Average Rating:</strong>
                     <Rating
-                      value={facility.average_rating}
+                      value={averageRating}
                       precision={0.1}
                       readOnly
                       size="small"
                       sx={{ ml: 1 }}
                     />
                     <Typography variant="body2" sx={{ ml: 1 }}>
-                      ({facility.average_rating.toFixed(1)})
+                      ({averageRating.toFixed(1)})
                     </Typography>
                   </Typography>
                 )}
