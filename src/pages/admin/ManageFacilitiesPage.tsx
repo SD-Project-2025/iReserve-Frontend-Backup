@@ -81,8 +81,6 @@ const ManageFacilitiesPage = () => {
       setFilteredFacilities(response.data.data);
     }
 
-    setFacilities(response.data);
-    setFilteredFacilities(response.data);
   } catch (err) {
     console.error("Error fetching assigned facilities:", err);
     setError("Failed to load assigned facilities. Please try again later.");
