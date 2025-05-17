@@ -22,11 +22,20 @@ import {
   Checkbox,
   FormControlLabel,
   Snackbar,
+  LinearProgress,
+  IconButton,
+  Tooltip,
 } from "@mui/material"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { TimePicker } from "@mui/x-date-pickers/TimePicker"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/services/api"
+import CloudUploadIcon from "@mui/icons-material/CloudUpload"
+import ClearIcon from "@mui/icons-material/Clear"
+
+// Environment variables
+const CLOUDINARY_UPLOAD_URL = import.meta.env.VITE_CLOUDINARY_UPLOAD_URL;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 interface Facility {
   facility_id: number
@@ -45,6 +54,13 @@ const CreateEventPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
+
+  // State variables for image upload
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [previewUrl, setPreviewUrl] = useState("")
+  const [imageUploaded, setImageUploaded] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -97,6 +113,15 @@ const CreateEventPage = () => {
     fetchFacilities()
   }, [])
 
+  // Clean up preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   const handleChange = (field: string, value: any) => {
     if (field === "facility_id") {
       const selectedFacility = facilities.find(f => f.facility_id === value)
@@ -104,7 +129,6 @@ const CreateEventPage = () => {
         ...prev,
         facility_id: value,
         capacity: selectedFacility?.capacity.toString() || "",
-        image_url: selectedFacility?.image_url || "",
       }))
     } else {
       setFormData(prev => ({
@@ -117,6 +141,106 @@ const CreateEventPage = () => {
       setFormErrors(prev => ({ ...prev, [field]: "" }))
     }
   }
+
+  // Handle file selection for image upload
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0]
+      setImageFile(file)
+
+      // Create a preview URL
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+      const objectUrl = URL.createObjectURL(file)
+      setPreviewUrl(objectUrl)
+      
+      // Reset upload status
+      setImageUploaded(false)
+      
+      // Clear the image URL field since we'll be using the uploaded file
+      setFormData(prev => ({
+        ...prev,
+        image_url: "",
+      }))
+    }
+  }
+
+  // Handle clearing selected file
+  const handleClearFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setImageFile(null)
+    setPreviewUrl("")
+    setUploadProgress(0)
+    setImageUploaded(false)
+  }
+
+  // Upload to Cloudinary (using environment variables)
+  const uploadToCloudinary = async () => {
+    if (!imageFile) {
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    setUploadProgress(20);
+
+    try {
+      // Create form data for Cloudinary upload
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); // Using environment variable
+      formData.append('folder', 'events');
+      
+      setUploadProgress(40);
+      
+      // Upload directly to Cloudinary using environment variable for upload URL
+      const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+      
+      const result = await response.json();
+      setUploadProgress(100);
+      
+      console.log("Upload successful:", result.secure_url);
+      setImageUploaded(true);
+      
+      // Update form data with the image URL
+      setFormData(prev => ({
+        ...prev,
+        image_url: result.secure_url,
+      }));
+      
+      return result.secure_url;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      let errorMessage = "Failed to upload image.";
+      if (error instanceof Error) {
+        errorMessage += ` ${error.message}`;
+      }
+      setError(errorMessage);
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Handle upload button click
+  const handleUploadClick = async () => {
+    if (!imageFile) {
+      setError("Please select an image file first");
+      return;
+    }
+
+    await uploadToCloudinary();
+  };
 
   const validateStep = () => {
     const errors = {
@@ -152,7 +276,6 @@ const CreateEventPage = () => {
         isValid = false
       }
       
-
       if (!formData.facility_id) {
         errors.facility_id = "Please select a facility"
         isValid = false
@@ -238,6 +361,15 @@ const CreateEventPage = () => {
           }
         }
       }
+
+      // Validate image - only check for uploaded file
+      if (imageFile && !imageUploaded) {
+        setError("Please upload the image before submitting the form")
+        return false
+      } else if (!imageFile) {
+        setError("Please select and upload an image")
+        return false
+      }
     }
 
     setFormErrors(errors)
@@ -250,6 +382,54 @@ const CreateEventPage = () => {
 
   const handleBack = () => {
     setActiveStep(prev => prev - 1)
+  }
+
+  // Check if all required fields in the final step are filled
+  const isFinalStepComplete = () => {
+    return (
+      !!formData.registration_deadline &&
+      // Image validation - require uploaded file
+      (imageFile && imageUploaded)
+    )
+  }
+
+  // Function to check if form can be submitted
+  const canSubmit = () => {
+    // If not on the final step, just check if upload/submission is in progress
+    if (activeStep !== 2) {
+      return !(submitting || isUploading)
+    }
+
+    // On the final step, check that all required fields are filled
+    // and that no processes are running
+    return isFinalStepComplete() && !(submitting || isUploading)
+  }
+
+  // Get tooltip message
+  const getSubmitButtonTooltip = () => {
+    if (submitting) {
+      return "Submitting..."
+    }
+
+    if (isUploading) {
+      return "Image upload in progress"
+    }
+
+    if (activeStep === 2) {
+      if (!formData.registration_deadline) {
+        return "Registration deadline is required"
+      }
+      
+      if (imageFile && !imageUploaded) {
+        return "Please upload the selected image"
+      }
+      
+      if (!imageFile && !formData.image_url.trim()) {
+        return "Please upload an image or provide an image URL"
+      }
+    }
+
+    return ""
   }
 
   const handleSubmit = async () => {
@@ -428,19 +608,18 @@ const CreateEventPage = () => {
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Fee (R)"
-                    type="number"
-                    placeholder="Enter amount in ZAR"
-                    value={formData.fee}
-                    onChange={(e) => handleChange("fee", e.target.value)}
-                    InputProps={{
-                      startAdornment: <span style={{ marginRight: 4 }}>R</span>,
-                    }}
-                  />
-                </Grid>
-
+                    <TextField
+                      fullWidth
+                      label="Fee (R)"
+                      type="number"
+                      placeholder="Enter amount in ZAR"
+                      value={formData.fee}
+                      onChange={(e) => handleChange("fee", e.target.value)}
+                      InputProps={{
+                        startAdornment: <span style={{ marginRight: 4 }}>R</span>,
+                      }}
+                    />
+                  </Grid>
                 </Grid>
               )}
 
@@ -457,19 +636,102 @@ const CreateEventPage = () => {
                         textField: {
                           fullWidth: true,
                           error: !!formErrors.registration_deadline,
-                          helperText: formErrors.registration_deadline,
+                          helperText: formErrors.registration_deadline || "When should registration close? Must be before event start date.",
                         },
                       }}
                     />
                   </Grid>
+                  
+                  {/* Image Section with Cloudinary */}
                   <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Image URL"
-                      value={formData.image_url}
-                      onChange={(e) => handleChange("image_url", e.target.value)}
-                    />
+                    <Typography variant="subtitle1" gutterBottom>
+                      Event Image *
+                    </Typography>
+                    
+                    {/* Image Guidelines */}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                      For best results, use images with a 16:9 aspect ratio, at least 1200x675 pixels.
+                      Maximum file size: 5MB. Supported formats: JPG, PNG, WebP.
+                    </Typography>
+                    
+                    <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<CloudUploadIcon />}
+                        disabled={isUploading || submitting}
+                      >
+                        Select Image
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={handleFileChange}
+                        />
+                      </Button>
+                      
+                      {imageFile && (
+                        <>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="body2" sx={{ mr: 1 }}>
+                              {imageFile.name}
+                            </Typography>
+                            <IconButton 
+                              size="small" 
+                              onClick={handleClearFile}
+                              disabled={isUploading || submitting}
+                            >
+                              <ClearIcon />
+                            </IconButton>
+                          </Box>
+                          
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleUploadClick}
+                            disabled={isUploading || !imageFile || imageUploaded}
+                          >
+                            {imageUploaded ? "Uploaded" : "Upload Image"}
+                          </Button>
+                        </>
+                      )}
+                    </Box>
+                    
+                    {previewUrl && (
+                      <Box sx={{ mb: 2, maxWidth: 300 }}>
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain' }}
+                        />
+                      </Box>
+                    )}
+                    
+                    {isUploading && (
+                      <Box sx={{ width: '100%', mb: 2 }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={uploadProgress} 
+                        />
+                        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center' }}>
+                          Uploading: {uploadProgress}%
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {imageUploaded && (
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        Image uploaded and optimized for web successfully!
+                      </Alert>
+                    )}
+                    
+                    {!imageFile && !imageUploaded && (
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        Please select and upload an image for your event.
+                      </Alert>
+                    )}
                   </Grid>
+                  
                   <Grid item xs={12}>
                     <FormControlLabel
                       control={
@@ -488,18 +750,27 @@ const CreateEventPage = () => {
                 <Button
                   variant="outlined"
                   onClick={activeStep === 0 ? () => navigate("/events") : handleBack}
-                  disabled={submitting}
+                  disabled={submitting || isUploading}
                 >
                   {activeStep === 0 ? "Cancel" : "Back"}
                 </Button>
-                <Button
-                  variant="contained"
-                  onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
-                  disabled={submitting}
-                  endIcon={submitting && <CircularProgress size={24} />}
+                
+                <Tooltip
+                  title={!canSubmit() ? getSubmitButtonTooltip() : ""}
+                  placement="top"
+                  arrow
                 >
-                  {activeStep === steps.length - 1 ? "Create Event" : "Next"}
-                </Button>
+                  <span> {/* Span wrapper needed for disabled button tooltip */}
+                    <Button
+                      variant="contained"
+                      onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
+                      disabled={!canSubmit()}
+                      endIcon={submitting && <CircularProgress size={24} />}
+                    >
+                      {activeStep === steps.length - 1 ? "Create Event" : "Next"}
+                    </Button>
+                  </span>
+                </Tooltip>
               </Box>
             </>
           )}

@@ -19,6 +19,10 @@ jobs:
         with:
           submodules: true
           lfs: false
+      - name: Fix Git permissions
+        run: |
+          sudo chmod -R u+w .git
+          sudo chown -R $(whoami) .git
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -26,12 +30,8 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_YELLOW_RIVER_065FAEF1E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "/" # App source code path
-    # Api source code path - optional
           output_location: "build" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
         env:
           VITE_API_URL : ${{ secrets.VITE_API_URL }}
           VITE_EMAIL_URL : ${{ secrets.VITE_EMAIL_URL }}
@@ -39,6 +39,9 @@ jobs:
           VITE_GOOGLE_MAPS_API_KEY :  ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_CHATBOT_AGENT_ID :  ${{ secrets.VITE_CHATBOT_AGENT_ID }}
           VITE_CHATBOT_PROJECT_ID : ${{ secrets.VITE_CHATBOT_PROJECT_ID }}
+          VITE_CLOUDINARY_UPLOAD_URL: ${{ secrets.VITE_CLOUDINARY_UPLOAD_URL }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+          VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

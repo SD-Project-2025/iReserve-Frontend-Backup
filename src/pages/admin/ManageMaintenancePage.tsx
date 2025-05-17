@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Typography,
@@ -35,21 +33,33 @@ import {
 } from "@mui/icons-material"
 import { api } from "@/services/api"
 
+interface Reporter {
+  type: "staff" | "resident"
+  id: number
+  employee_id?: string
+  name?: string
+  email?: string
+}
+
 interface MaintenanceReport {
   report_id: number
   title: string
   description: string
-  facility: {
-    name: string
-    facility_id: number
-  }
-  user: {
-    name: string
-    user_id: number
-  }
-  reported_date: string
   status: string
   priority: string
+  reported_date: string
+  facility_id: number
+  Facility: {
+    facility_id: number
+    name: string
+    type: string
+    location: string
+  }
+  reporter: Reporter | null
+  assigned_to: number | null
+  scheduled_date: string | null
+  completion_date: string | null
+  feedback: string | null
 }
 
 const ManageMaintenancePage = () => {
@@ -71,7 +81,6 @@ const ManageMaintenancePage = () => {
       try {
         setLoading(true)
         setError(null)
-
         const response = await api.get("/maintenance")
         setReports(response.data.data)
         setFilteredReports(response.data.data)
@@ -82,40 +91,32 @@ const ManageMaintenancePage = () => {
         setLoading(false)
       }
     }
-
     fetchMaintenanceReports()
   }, [])
 
   useEffect(() => {
-    // Apply filters
     let result = reports
 
-    // Filter by search term
     if (searchTerm) {
-      result = result.filter(
-        (report) =>
-          report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          report.facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          report.user?.name.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+      const lowerSearch = searchTerm.toLowerCase()
+      result = result.filter(report => {
+        const searchStrings = [
+          report.title.toLowerCase(),
+          report.description.toLowerCase(),
+          report.Facility.name.toLowerCase(),
+          report.reporter?.name?.toLowerCase() || '',
+          report.reporter?.employee_id?.toLowerCase() || '',
+          report.reporter?.id?.toString() || ''
+        ]
+        return searchStrings.some(s => s.includes(lowerSearch))
+      })
     }
 
-    // Filter by status
-    if (filterStatus !== "all") {
-      result = result.filter((report) => report.status === filterStatus)
-    }
-
-    // Filter by priority
-    if (filterPriority !== "all") {
-      result = result.filter((report) => report.priority === filterPriority)
-    }
-
-    // Filter by facility
-    if (filterFacility !== "all") {
-      result = result.filter((report) => report.facility?.facility_id === Number(filterFacility))
-    }
-
+    if (filterStatus !== "all") result = result.filter(report => report.status === filterStatus)
+    if (filterPriority !== "all") result = result.filter(report => report.priority === filterPriority)
+    if (filterFacility !== "all") result = result.filter(
+      report => report.Facility.facility_id === Number(filterFacility)
+    )
     setFilteredReports(result)
   }, [searchTerm, filterStatus, filterPriority, filterFacility, reports])
 
@@ -139,7 +140,6 @@ const ManageMaintenancePage = () => {
     try {
       setProcessing(true)
       await api.put(`/maintenance/${reportId}/status`, { status })
-      // Refresh reports
       const response = await api.get("/maintenance")
       setReports(response.data.data)
       setDialogOpen(false)
@@ -186,25 +186,31 @@ const ManageMaintenancePage = () => {
     }
   }
 
-  // Get unique facilities for filter
-  const facilities = [...new Set(reports.map((report) => report.facility))]
-    .filter((facility): facility is NonNullable<typeof facility> => facility !== undefined)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const facilities = Array.from(new Map(
+    reports.map(report => [report.Facility.facility_id, report.Facility])
+  ).values()).sort((a, b) => a.name.localeCompare(b.name))
 
   const columns: GridColDef[] = [
     { field: "report_id", headerName: "ID", width: 70 },
-    { field: "title", headerName: "Title", width: 200 },
+    { field: "title", headerName: "Title", width: 180 },
     {
-      field: "user",
+      field: "reported_by",
       headerName: "Reported By",
-      width: 150,
-      valueGetter: (params) => params.row.user?.name || "Unknown",
+      width: 200,
+      valueGetter: (params) => {
+        const reporter = params.row.reporter
+        if (!reporter) return "Unknown"
+        
+        if (reporter.name) return reporter.name
+        if (reporter.type === "staff") return `Staff: ${reporter.employee_id || `#${reporter.id}`}`
+        return `Resident: #${reporter.id}`
+      },
     },
     {
       field: "facility",
       headerName: "Facility",
-      width: 150,
-      valueGetter: (params) => params.row.facility?.name || "Unknown",
+      width: 160,
+      valueGetter: (params) => params.row.Facility.name,
     },
     {
       field: "reported_date",
@@ -217,23 +223,23 @@ const ManageMaintenancePage = () => {
       headerName: "Priority",
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value} color={getPriorityColor(params.value as string) as any} size="small" />
+        <Chip label={params.value} color={getPriorityColor(params.value) as any} size="small" />
       ),
     },
     {
       field: "status",
       headerName: "Status",
-      width: 120,
+      width: 130,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
+        <Chip label={params.value} color={getStatusColor(params.value) as any} size="small" />
       ),
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 350,
+      width: 420,
       renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "nowrap" }}>
           <Button
             size="small"
             startIcon={<ViewIcon />}
@@ -310,7 +316,12 @@ const ManageMaintenancePage = () => {
             <Grid item xs={12} sm={4} md={2}>
               <FormControl fullWidth>
                 <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select labelId="status-filter-label" value={filterStatus} label="Status" onChange={handleStatusChange}>
+                <Select
+                  labelId="status-filter-label"
+                  value={filterStatus}
+                  label="Status"
+                  onChange={handleStatusChange}
+                >
                   <MenuItem value="all">All Statuses</MenuItem>
                   <MenuItem value="reported">Reported</MenuItem>
                   <MenuItem value="in-progress">In Progress</MenuItem>
@@ -379,7 +390,6 @@ const ManageMaintenancePage = () => {
         </CardContent>
       </Card>
 
-      {/* Status Update Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Update Maintenance Status</DialogTitle>
         <DialogContent>

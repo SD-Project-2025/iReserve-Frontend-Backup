@@ -37,6 +37,7 @@ import SystemReportsPage from "./pages/admin/SystemReportsPage"
 import ManageNotifications from "./pages/admin/ManageNotifiations"  
 import EditEvent from "./components/Events/EditEvent"
 import ViewUser from "./components/admin/ViewUser"
+import AddFacility from "./pages/admin/AddFacility" // Import the AddFacility component
 
 //Landing Page
 import LandingPage from "./LandingPage"
@@ -120,6 +121,10 @@ function App() {
         }
       >
         <Route path="/admin/facilities" element={<ManageFacilitiesPage />} />
+        {/* Add the facility creation route BEFORE the :id route */}
+        <Route path="/admin/facilities/create" element={<AddFacility />} />
+        <Route path="/admin/facilities/:id" element={<FacilityDetailsPage />} />
+        <Route path="admin/facilities/:id/edit" element={<FacilityDetailsPage />} />
 
         <Route path="/admin/bookings" element={<ManageBookingsPage />} />
         <Route path="/admin/bookings/:id" element={<BookingDetailsPage />} />
@@ -134,10 +139,8 @@ function App() {
         <Route path ="/admin/emaiUser" element={<ManageNotifications/>}/>
         <Route path="/admin/events/:id" element={<EventDetailsPage />} />
        < Route path="/admin/events/:id/edit" element={<EditEvent />} />
-       <Route path="admin/facilities/:id/edit" element={<FacilityDetailsPage />} />
         <Route path="/admin/notifications" element={<ManageNotifications />} />
         <Route path="/admin/notifications/:id" element={<NotificationsPage />} />
-        <Route path="/admin/facilities/:id" element={<FacilityDetailsPage />} />
       </Route>
 
       {/* 404 Route */}
