@@ -29,8 +29,8 @@ import "react-toastify/dist/ReactToastify.css"
 import { useNavigate } from "react-router-dom"
 import {
   Search as SearchIcon,
-  Block as BlockIcon,
-  CheckCircle as ActivateIcon,
+   
+   
   Visibility as ViewIcon,
   PersonOutline as PersonIcon,
   PeopleAlt as PeopleIcon,
@@ -110,6 +110,9 @@ const ManageUsersPage = () => {
         if (userRes.data?.data) setUsers(userRes.data.data)
         if (staffRes.data?.data) setStaff(staffRes.data.data)
         if (residentRes.data?.data) setResidents(residentRes.data.data)
+          console.log("Users:", userRes.data.data)
+          console.log("Staff:", staffRes.data.data)
+          console.log("Residents:", residentRes.data.data)
       } catch (err: any) {
         console.error("Error fetching data:", err)
         toast.error("Failed to load user data. Please try again later.")
@@ -210,9 +213,9 @@ const ManageUsersPage = () => {
     try {
       setProcessing(true)
       const res = await api.post(`/manage/users/${dialogUpgradeId}/upgrade`, {
+       
         employee_id: "EMP12345",
-        position: "Facility Manager",
-        department: "Operations",
+      
       })
       if (res.data?.success) {
         setUsers((prev) =>
@@ -271,10 +274,7 @@ const ManageUsersPage = () => {
   }
 
   // Dialog open helpers
-  const openDialog = (id: number, action: string) => {
-    setDialogAction({ id, action })
-    setDialogOpen(true)
-  }
+  // Removed unused openDialog function
   const openAdminDialog = (id: number, makeAdmin: boolean) => {
     setDialogAdminAction({ id, is_admin: makeAdmin })
     setAdminDialogOpen(true)
@@ -331,7 +331,7 @@ const ManageUsersPage = () => {
               size="small"
               startIcon={<ViewIcon />}
               onClick={() => {
-                navigate(`/admin/users/${params.row.user_id}`)
+                navigate(`/admin/users/${params.row.user_id}`,{ state: { userType: params.row.user_type} })
               }}
               sx={{ mb: 2 }}
             >
@@ -344,25 +344,7 @@ const ManageUsersPage = () => {
             >
               {isAdmin ? "Revoke Admin" : "Make Admin"}
             </Button>
-            {params.row.status === "active" ? (
-              <Button
-                size="small"
-                color="error"
-                startIcon={<BlockIcon />}
-                onClick={() => openDialog(params.row.user_id, "deactivate")}
-              >
-                Deactivate
-              </Button>
-            ) : (
-              <Button
-                size="small"
-                color="success"
-                startIcon={<ActivateIcon />}
-                onClick={() => openDialog(params.row.user_id, "activate")}
-              >
-                Activate
-              </Button>
-            )}
+            
           </Box>
         )
       },
@@ -391,7 +373,7 @@ const ManageUsersPage = () => {
             size="small"
             startIcon={<ViewIcon />}
             onClick={() => {
-              navigate(`/admin/users/${params.row.user_id}`)
+              navigate(`/admin/users/${params.row.user_id}`,{ state: { userType: "staff" } })
             }}
           >
             View
@@ -428,7 +410,7 @@ const ManageUsersPage = () => {
             size="small"
             startIcon={<ViewIcon />}
             onClick={() => {
-              navigate(`/admin/users/${params.row.user_id}`)
+              navigate(`/admin/users/${params.row.user_id}`,{ state: { userType: "resident" } })
             }}
             sx={{ mb: 2 }}
           >
@@ -442,6 +424,7 @@ const ManageUsersPage = () => {
             Upgrade
           </Button>
         </Box>
+        
       ),
     },
   ]
