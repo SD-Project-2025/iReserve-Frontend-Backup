@@ -165,37 +165,73 @@ const EventDetailsPage = () => {
     if (id) fetchEventDetails()
   }, [id, user?.id])
 
-  const handleRegister = async () => {
-    try {
-      setActionLoading(true)
-      const response = await api.post(`/events/${id}/register`)
-  
-      if (response.data.message?.includes("Already registered")) {
-        await fetchEventDetails()
-        return
-      }
-  
-      await fetchEventDetails()
-      setConfirmDialogOpen(false)
-      setSuccess("Successfully registered for the event!")
+ const handlePaymentRedirect = (paymentUrl: string) => {
+  // Create hidden form for secure submission
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = paymentUrl;
+  form.style.display = 'none';
+
+  // Add parameters as hidden inputs
+  const params = new URL(paymentUrl).searchParams;
+  params.forEach((value, key) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = value;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+};
+
+const handleRegister = async () => {
+  try {
+    setActionLoading(true);
+    const usr = await api.get(`/auth/me`);
+    const residentID = usr.data.data.profile?.resident_id;
+    
+    // Handle paid events
+    if (event?.fee && event.fee > 0) {
+      const paymentResponse = await api.post(`/events/${id}/initiate-payment`, {
+        resident_id: residentID,
+      });
       
-      // Sending a notification for successful registration
-      await api.post("/notifications", {
-        title: "Event Registration",
-        message: `You have successfully registered for the event ${event?.title}!`,
-        type: "event",
-        related_id: id,
-        related_type: "event",
-      })
-  
-      setTimeout(() => setSuccess(null), 5000)
-    } catch (err: any) {
-      setSuccess(null)
-      setError(err.response?.data?.message || "Registration failed. Please try again.")
-    } finally {
-      setActionLoading(false)
+      // Use secure form submission instead of direct redirect
+      handlePaymentRedirect(paymentResponse.data.data.payment_url);
+      return;
     }
+
+    // Handle free registration
+    const response = await api.post(`/events/${id}/register`);
+    
+    if (response.data.message?.includes("Already registered")) {
+      await fetchEventDetails();
+      return;
+    }
+
+    await fetchEventDetails();
+    setConfirmDialogOpen(false);
+    setSuccess("Successfully registered for the event!");
+    
+    // Send notification
+    await api.post("/notifications", {
+      title: "Event Registration",
+      message: `You have successfully registered for ${event?.title}!`,
+      type: "event",
+      related_id: id,
+      related_type: "event",
+    });
+
+    setTimeout(() => setSuccess(null), 5000);
+  } catch (err: any) {
+    setSuccess(null);
+    setError(err.response?.data?.message || "Registration failed. Please try again.");
+  } finally {
+    setActionLoading(false);
   }
+};
 
   const handleCancelRegistration = async () => {
     try {

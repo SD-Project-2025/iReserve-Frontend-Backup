@@ -25,6 +25,8 @@ import CreateEvent from "./pages/admin/CreateEvent"
 import MaintenanceDetailsPage from "./pages/maintenance/MaintenanceDetailsPage"
 import ProfilePage from "./pages/profile/ProfilePage"
 import NotificationsPage from "./pages/notifications/NotificationsPage"
+import PaymentSuccessful from "./pages/payments/PaymentSuccessful"
+import PaymentCancelled from "./pages/payments/PaymentCancelled"
 import NotFoundPage from "./pages/NotFoundPage"
 
 // Admin Pages
@@ -108,6 +110,9 @@ function App() {
         <Route path="/maintenance/create" element={<CreateMaintenancePage />} />
         <Route path="/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/payments/:id/success" element={<PaymentSuccessful />} />
+        <Route path="/payments/:id/cancelled" element={<PaymentCancelled />} />
+
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/export-pdf" element={<ExportPdfPage />} />
       </Route>
