@@ -51,8 +51,11 @@ interface Event {
   event_id: number
   title: string
   description: string
-  facility: {
+  facility_id: number
+  Facility: {
     name: string
+    type: string
+    location: string
     facility_id: number
   }
   start_date: string
@@ -60,9 +63,17 @@ interface Event {
   start_time: string
   end_time: string
   status: string
-  max_attendees: number
-  current_attendees: number
-  created_at: string
+  capacity: number
+  current_attendees?: number // Make this optional since it's not in your API response
+  image_url: string
+  is_public: boolean
+  registration_deadline: string
+  fee: string
+  organizer: {
+    staff_id: number
+    employee_id: string
+    position: string
+  }
 }
 
 const ManageEventsPage = () => {
@@ -83,13 +94,32 @@ const ManageEventsPage = () => {
   const [actionMessage, setActionMessage] = useState("")
 
   const fetchEvents = async () => {
+    let response
     try {
       setLoading(true)
       setError(null)
 
-      const response = await api.get("/events")
-      setEvents(response.data.data)
-      setFilteredEvents(response.data.data)
+      const userProfile = await api.get("/auth/me")
+      const staffId = userProfile.data.data.profile.staff_id
+      if (staffId){
+        try {
+          response = await api.get(`/events/staff/${staffId}/events`)
+          
+        } catch (error) {
+          console.error("Error fetching staff events:", error);
+          throw error;
+        }
+        
+      }else{
+        response = await api.get("/events")
+      }
+      
+      const eventsWithDefaults = response.data.data.map((event: Event) => ({
+        ...event,
+        current_attendees: event.current_attendees || 0 // Set default if not provided
+      }))
+      setEvents(eventsWithDefaults)
+      setFilteredEvents(eventsWithDefaults)
     } catch (err) {
       console.error("Error fetching events:", err)
       setError("Failed to load events. Please try again later.")
@@ -113,7 +143,9 @@ const ManageEventsPage = () => {
         (event) =>
           event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.facility?.name.toLowerCase().includes(searchTerm.toLowerCase()),
+          (event.Facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.Facility?.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.Facility?.location.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
 
@@ -124,7 +156,7 @@ const ManageEventsPage = () => {
 
     // Filter by facility
     if (filterFacility !== "all") {
-      result = result.filter((event) => event.facility?.facility_id === Number(filterFacility))
+      result = result.filter((event) => event.Facility?.facility_id === Number(filterFacility))
     }
 
     setFilteredEvents(result)
@@ -211,7 +243,7 @@ const ManageEventsPage = () => {
   }
 
   // Get unique facilities for filter
-  const facilities = [...new Set(events.map((event) => event.facility))]
+  const facilities = [...new Set(events.map((event) => event.Facility))]
     .filter((facility): facility is NonNullable<typeof facility> => facility !== undefined)
     .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -236,7 +268,7 @@ const ManageEventsPage = () => {
       field: "facility",
       headerName: "Facility",
       width: 150,
-      valueGetter: (params) => params.row.facility?.name || "Unknown",
+      valueGetter: (params) => params.row.Facility?.name || "Unknown",
     },
     {
       field: "date",
@@ -259,9 +291,9 @@ const ManageEventsPage = () => {
       headerName: "Attendees",
       width: 130,
       renderCell: (params: GridRenderCellParams) => {
-        const current = params.row.current_attendees;
-        const max = params.row.max_attendees;
-        const percentage = Math.round((current / max) * 100);
+        const current = params.row.current_attendees || 0;
+        const max = params.row.capacity || 0;
+        const percentage = max > 0 ? Math.round((current / max) * 100) : 0;
         
         return (
           <Box sx={{ width: '100%' }}>
@@ -718,7 +750,7 @@ const ManageEventsPage = () => {
                     <Grid container spacing={1} sx={{ mb: 1 }}>
                       <Grid item xs={6}>
                         <Typography variant="body2" color="text.secondary">Facility</Typography>
-                        <Typography variant="body1">{event.facility?.name || "Unknown"}</Typography>
+                        <Typography variant="body1">{event.Facility?.name || "Unknown"}</Typography>
                       </Grid>
                       
                       <Grid item xs={6}>
@@ -738,7 +770,7 @@ const ManageEventsPage = () => {
                       
                       <Grid item xs={6}>
                         <Typography variant="body2" color="text.secondary">Attendees</Typography>
-                        <Typography variant="body1">{event.current_attendees}/{event.max_attendees}</Typography>
+                        <Typography variant="body1">{(event.current_attendees || 0)}/{event.capacity}</Typography>
                       </Grid>
                     </Grid>
                     
@@ -830,4 +862,4 @@ const ManageEventsPage = () => {
   )
 }
 
-export default ManageEventsPage
+export default ManageEventsPage 
