@@ -63,27 +63,36 @@ const ManageFacilitiesPage = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
+ 
 
   const fetchFacilities = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const response = await api.get("/facilities")
-      setFacilities(response.data.data)
-      setFilteredFacilities(response.data.data)
-    } catch (err) {
-      console.error("Error fetching facilities:", err)
-      setError("Failed to load facilities. Please try again later.")
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
+  try {
+    setLoading(true);
+    setError(null);
+    const userProfile = await api.get("/auth/me")
+    const staffId = userProfile.data.data.profile.staff_id
+    if (staffId){
+      const response = await api.get(`/facilities/staff/${staffId}`);
+      setFacilities(response.data);
+      setFilteredFacilities(response.data);
+    }else{
+      const response = await api.get(`/facilities`);
+      setFacilities(response.data.data);
+      setFilteredFacilities(response.data.data);
     }
-  }
 
-  useEffect(() => {
-    fetchFacilities()
-  }, [])
+  } catch (err) {
+    console.error("Error fetching assigned facilities:", err);
+    setError("Failed to load assigned facilities. Please try again later.");
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+};
+
+useEffect(() => {
+  fetchFacilities();
+}, []);
 
   useEffect(() => {
     // Apply filters
