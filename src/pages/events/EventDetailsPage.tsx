@@ -494,10 +494,10 @@ const EventDetailsPage = () => {
                 </Box>
               )}
 
-              {typeof event.fee === "number" && event.fee > 0 && (
+              {event.fee != null && !isNaN(Number(event.fee)) && event.fee > 0 && (
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <Typography color="text.secondary">
-                    Fee: ${event.fee.toFixed(2)}
+                    Fee: ${Number(event.fee).toFixed(2)}
                   </Typography>
                 </Box>
               )}
@@ -612,9 +612,9 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to register for "{event.title}"? You can cancel your registration later if needed.
           </DialogContentText>
-          {event.fee && event.fee > 0 && (
+          {event.fee != null && !isNaN(Number(event.fee)) && event.fee > 0 && (
             <DialogContentText sx={{ mt: 2, fontWeight: 'bold' }}>
-              Note: This event has a fee of ${event.fee.toFixed(2)} that will need to be paid.
+              Note: This event has a fee of ${Number(event.fee).toFixed(2)} that will need to be paid.
             </DialogContentText>
           )}
         </DialogContent>
@@ -635,7 +635,7 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to cancel your registration for "{event.title}"?
           </DialogContentText>
-          {event.fee && event.fee > 0 && (
+          {event.fee != null && !isNaN(Number(event.fee)) && event.fee > 0 && (
             <DialogContentText sx={{ mt: 2, color: 'warning.main' }}>
               Note: Cancelling may affect any fees you've already paid.
             </DialogContentText>
