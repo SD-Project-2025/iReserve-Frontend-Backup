@@ -42,7 +42,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext"
 import { useTheme } from "@/contexts/ThemeContext"
 import { api } from "@/services/api"
-import logo from "@/assets/logo.svg" 
+import logo from "@/assets/logo.svg"
 
 const MainLayout = () => {
   const { user, logout } = useAuth()
@@ -56,10 +56,40 @@ const MainLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(true)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [newNotificationsCount, setNewNotificationsCount] = useState<number>(0)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   const isAdmin = user?.type === "staff"
   const drawerWidth = 260
   const collapsedDrawerWidth = 72
+
+  useEffect(() => {
+    const fetchAdminStatus = async () => {
+      if (user?.type === "staff") {
+        try {
+          const response = await api.get("/auth/me")
+          const adminStatus = response.data.data.profile?.is_admin === true
+          setIsSuperAdmin(adminStatus)
+          console.log("Super Admin Status:", adminStatus)
+        } catch (error) {
+          console.error("Error fetching admin status:", error)
+          setIsSuperAdmin(false)
+        }
+      }
+    }
+
+    const fetchNotificationsCount = async () => {
+      try {
+        const response = await api.get("/notifications", { params: { read: "false" } })
+        setNewNotificationsCount(response.data.data.length)
+      } catch (error) {
+        console.error("Error fetching notifications:", error)
+        setNewNotificationsCount(0)
+      }
+    }
+
+    fetchAdminStatus()
+    fetchNotificationsCount()
+  }, [user])
 
   const handleDrawerToggle = () => {
     if (isMobile) {
@@ -89,24 +119,6 @@ const MainLayout = () => {
     }
   }
 
-  const getUnreadNotificationsCount = async () => {
-    try {
-      const response = await api.get("/notifications", { params: { read: "false" } })
-      return response.data.data.length
-    } catch (error) {
-      console.error("Error fetching unread notifications:", error)
-      return 0
-    }
-  }
-
-  useEffect(() => {
-    const fetchNotificationsCount = async () => {
-      const count = await getUnreadNotificationsCount()
-      setNewNotificationsCount(count)
-    }
-    fetchNotificationsCount()
-  }, [])
-
   const menuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
     { text: "Facilities", icon: <SportsIcon />, path: "/facilities" },
@@ -115,14 +127,17 @@ const MainLayout = () => {
     { text: "Maintenance", icon: <MaintenanceIcon />, path: "/maintenance" },
   ]
 
-  const adminMenuItems = [
+  const baseAdminMenuItems = [
     { text: "Manage Facilities", icon: <SportsIcon />, path: "/admin/facilities" },
     { text: "Manage Bookings", icon: <BookingIcon />, path: "/admin/bookings" },
     { text: "Manage Events", icon: <EventIcon />, path: "/admin/events" },
-    { text: "Emails Users", icon: <EmailIcon />, path: "/admin/emailUser" },
     { text: "Manage Maintenance", icon: <MaintenanceIcon />, path: "/admin/maintenance" },
-    { text: "Manage Users", icon: <PersonIcon />, path: "/admin/users" },
     { text: "System Reports", icon: <ReportIcon />, path: "/admin/reports" },
+  ]
+
+  const superAdminMenuItems = [
+    { text: "Email Users", icon: <EmailIcon />, path: "/admin/notifications" },
+    { text: "Manage Users", icon: <PersonIcon />, path: "/admin/users" },
   ]
 
   const drawer = (
@@ -135,7 +150,7 @@ const MainLayout = () => {
         minHeight: 64
       }}>
         <Box onClick={() => handleNavigate("/")} sx={{ cursor: "pointer" }}>
-         <img 
+          <img 
             src={logo} 
             alt="iReserve Logo" 
             style={{ 
@@ -158,7 +173,6 @@ const MainLayout = () => {
           justifyContent: "center"
         }}>
          
-          
         </Box>
       )}
 
@@ -209,7 +223,7 @@ const MainLayout = () => {
             Administration
           </Typography>
           <List component="nav" sx={{ px: 1 }}>
-            {adminMenuItems.map((item) => (
+            {baseAdminMenuItems.map((item) => (
               <ListItem key={item.text} disablePadding>
                 <ListItemButton
                   selected={location.pathname === item.path}
@@ -236,6 +250,52 @@ const MainLayout = () => {
               </ListItem>
             ))}
           </List>
+
+          {isSuperAdmin && (
+            <>
+              <Divider sx={{ my: 1 }} />
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{
+                  px: 3,
+                  py: 1,
+                  display: { xs: "none", sm: drawerOpen ? "block" : "none" },
+                  textAlign: "center"
+                }}
+              >
+                Super Admin Privileges
+              </Typography>
+              <List component="nav" sx={{ px: 1 }}>
+                {superAdminMenuItems.map((item) => (
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton
+                      selected={location.pathname === item.path}
+                      onClick={() => handleNavigate(item.path)}
+                      sx={{
+                        borderRadius: "8px",
+                        mb: 0.5,
+                        justifyContent: "center",
+                        "&.Mui-selected": { color: "primary.main" }
+                      }}
+                    >
+                      <ListItemIcon sx={{
+                        minWidth: "auto",
+                        color: location.pathname === item.path ? "primary.main" : "inherit",
+                        ...(drawerOpen && { mr: 2 })
+                      }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={item.text} 
+                        sx={{ display: { xs: "none", sm: drawerOpen ? "block" : "none" } }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
         </>
       )}
     </>
