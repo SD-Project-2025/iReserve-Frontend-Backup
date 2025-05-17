@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React from "react"
 import {
   Typography,
   Card,
@@ -18,146 +18,221 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-} from "@mui/material";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+} from "@mui/material"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
 import {
   ArrowBack as BackIcon,
   Block as BlockIcon,
   CheckCircle as ActivateIcon,
-} from "@mui/icons-material";
+  
+  PersonAdd as PersonAddIcon,
+  Work as WorkIcon,
+  AdminPanelSettings as AdminIcon,
+} from "@mui/icons-material"
+import { api } from "@/services/api" // Adjust path if needed
 
 interface User {
-  user_id: number;
-  name: string;
-  email: string;
-  type: string;
-  status: string;
-  created_at: string;
+  user_id: number
+  name: string
+  email: string
+  type: string
+  status: string
+  created_at: string
+  is_admin?: boolean
 }
 
 const ViewUser: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [user, setUser] = React.useState<User | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null);
-  const [processing, setProcessing] = useState(false);
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Dialog states
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false)
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
+  const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false)
+
+  const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
+  const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(null)
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        setLoading(true)
+        setError(null)
 
-        // In a real app, you would fetch from an API endpoint
-        // For now, we'll use mock data
-        const mockUsers: User[] = [
-          {
-            user_id: 1,
-            name: "John Doe",
-            email: "john.doe@example.com",
-            type: "resident",
-            status: "active",
-            created_at: "2023-01-15T00:00:00.000Z",
-          },
-          {
-            user_id: 2,
-            name: "Jane Smith",
-            email: "jane.smith@example.com",
-            type: "staff",
-            status: "active",
-            created_at: "2023-02-20T00:00:00.000Z",
-          },
-          {
-            user_id: 3,
-            name: "Bob Johnson",
-            email: "bob.johnson@example.com",
-            type: "resident",
-            status: "inactive",
-            created_at: "2023-03-10T00:00:00.000Z",
-          },
-        ];
-
-        // Check if user data was passed in location state
         if (location.state?.userData) {
-          setUser(location.state.userData);
-        } else {
-          // Find user in mock data
-          const foundUser = mockUsers.find(u => u.user_id.toString() === id);
-          if (foundUser) {
-            setUser(foundUser);
-          } else {
-            setError("User not found");
-          }
+          setUser(location.state.userData)
+          return
         }
-      } catch (err) {
-        console.error("Error fetching user:", err);
-        setError("Failed to load user data. Please try again later.");
+
+        const response = await api.get(`/manage/users`)
+        const foundUser = response.data.data.find((u: User) => u.user_id.toString() === id)
+
+        if (foundUser) {
+          setUser(foundUser)
+        } else {
+          setError("User not found")
+        }
+      } catch (err: any) {
+        console.error("Error fetching user:", err)
+        setError(
+          err.response?.data?.message || "Failed to load user. Please try again later."
+        )
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    fetchUser();
-  }, [id, location.state]);
-
-  const handleUpdateUserStatus = async ( status: string) => {
-    try {
-      setProcessing(true);
-      // In a real app, you would call an API endpoint
-      // await api.put(`/users/${userId}/status`, { status })
-
-      // For now, we'll update the mock data
-      if (user) {
-        setUser({ ...user, status });
-      }
-      setDialogOpen(false);
-      setDialogAction(null);
-    } catch (err) {
-      console.error("Error updating user status:", err);
-      setError("Failed to update user status. Please try again later.");
-    } finally {
-      setProcessing(false);
     }
-  };
+
+    fetchUser()
+  }, [id, location.state])
+
+  // Handle user status update
+  const handleUpdateUserStatus = async () => {
+    if (!dialogAction || !user) return
+    try {
+      setProcessing(true)
+      const newStatus = dialogAction.action === "activate" ? "active" : "inactive"
+      const res = await api.put(`/manage/users/${dialogAction.id}/status`, { status: newStatus })
+
+      if (res.data?.success) {
+        setUser({ ...user, status: newStatus })
+        setError(null)
+      }
+    } catch (err: any) {
+      console.error("Error updating user status:", err)
+      setError(
+        err.response?.data?.message || "Failed to update user status. Please try again later."
+      )
+    } finally {
+      setProcessing(false)
+      setDialogOpen(false)
+      setDialogAction(null)
+    }
+  }
+
+  // Handle admin role toggle
+  const handleToggleAdmin = async () => {
+    if (!dialogAdminAction || !user) return
+    try {
+      setProcessing(true)
+      const res = await api.put(`/manage/users/${dialogAdminAction.id}/admin`, {
+        is_admin: dialogAdminAction.is_admin,
+      })
+
+      if (res.data?.success) {
+        setUser({ ...user, is_admin: dialogAdminAction.is_admin })
+        setError(null)
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Failed to update admin privileges. Please try again later."
+      )
+    } finally {
+      setProcessing(false)
+      setAdminDialogOpen(false)
+      setDialogAdminAction(null)
+    }
+  }
+
+  // Handle upgrade to staff
+  const handleUpgradeToStaff = async () => {
+    if (!user) return
+    try {
+      setProcessing(true)
+      const res = await api.post(`/manage/users/${user?.user_id}/upgrade`, {
+        employee_id: "EMP12345",
+        position: "Facility Manager",
+        department: "Operations",
+      })
+
+      if (res.data?.success) {
+        setUser({ ...user, type: "staff" })
+        setError(null)
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Failed to upgrade user to staff. Please try again later."
+      )
+    } finally {
+      setProcessing(false)
+      setUpgradeDialogOpen(false)
+    }
+  }
+
+  // Handle downgrade to resident
+  const handleDowngradeToResident = async () => {
+    if (!user) return
+    try {
+      setProcessing(true)
+      const res = await api.post(`/manage/users/${user?.user_id}/downgrade`)
+
+      if (res.data?.success) {
+        setUser({ ...user, type: "resident", is_admin: false })
+        setError(null)
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to downgrade user to resident. Please try again later."
+      )
+    } finally {
+      setProcessing(false)
+      setDowngradeDialogOpen(false)
+    }
+  }
 
   const openDialog = (id: number, action: string) => {
-    setDialogAction({ id, action });
-    setDialogOpen(true);
-  };
+    setDialogAction({ id, action })
+    setDialogOpen(true)
+  }
+
+  const openAdminDialog = (id: number, makeAdmin: boolean) => {
+    setDialogAdminAction({ id, is_admin: makeAdmin })
+    setAdminDialogOpen(true)
+  }
+
+  const openUpgradeDialog = () => {
+    setUpgradeDialogOpen(true)
+  }
+
+  const openDowngradeDialog = () => {
+    setDowngradeDialogOpen(true)
+  }
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status) {
       case "active":
-        return "success";
+        return "success"
       case "inactive":
-        return "error";
+        return "error"
       default:
-        return "default";
+        return "default"
     }
-  };
+  }
 
   const getTypeLabel = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type) {
       case "resident":
-        return "Resident";
+        return "Resident"
       case "staff":
-        return "Staff";
+        return "Staff"
       default:
-        return type;
+        return type
     }
-  };
+  }
 
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
         <CircularProgress />
       </Box>
-    );
+    )
   }
 
   if (error) {
@@ -165,7 +240,7 @@ const ViewUser: React.FC = () => {
       <Alert severity="error" sx={{ my: 3 }}>
         {error}
       </Alert>
-    );
+    )
   }
 
   if (!user) {
@@ -173,7 +248,7 @@ const ViewUser: React.FC = () => {
       <Alert severity="warning" sx={{ my: 3 }}>
         No user data available
       </Alert>
-    );
+    )
   }
 
   return (
@@ -217,11 +292,7 @@ const ViewUser: React.FC = () => {
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>
                 <strong>Status:</strong>{" "}
-                <Chip 
-                  label={user.status} 
-                  color={getStatusColor(user.status)} 
-                  size="small" 
-                />
+                <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
               </Typography>
               <Typography variant="subtitle1" gutterBottom>
                 <strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}
@@ -229,26 +300,58 @@ const ViewUser: React.FC = () => {
             </Grid>
           </Grid>
 
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
-            {user.status === "active" ? (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}>
+            {/* Toggle Admin Role */}
+            <Button
+              variant="contained"
+              color={user.is_admin ? "error" : "success"}
+              startIcon={<AdminIcon />}
+              onClick={() => openAdminDialog(user.user_id, !user.is_admin)}
+            >
+              {user.is_admin ? "Revoke Admin" : "Make Admin"}
+            </Button>
+
+            {/* Upgrade/Downgrade Button */}
+            {user.type === "resident" ? (
               <Button
                 variant="contained"
-                color="error"
-                startIcon={<BlockIcon />}
-                onClick={() => openDialog(user.user_id, "deactivate")}
-                sx={{ mr: 2 }}
+                color="info"
+                startIcon={<WorkIcon />}
+                onClick={openUpgradeDialog}
               >
-                Deactivate User
+                Upgrade to Staff
               </Button>
             ) : (
               <Button
                 variant="contained"
-                color="success"
-                startIcon={<ActivateIcon />}
-                onClick={() => openDialog(user.user_id, "activate")}
-                sx={{ mr: 2 }}
+                color="warning"
+                startIcon={<PersonAddIcon />}
+                onClick={openDowngradeDialog}
               >
-                Activate User
+                Downgrade to Resident
+              </Button>
+            )}
+
+            {/* Activate/Deactivate Button */}
+            {user.status === "active" ? (
+              <Button
+              variant="contained"
+              color="error"
+              startIcon={<BlockIcon />}
+              onClick={() => openDialog(user.user_id, "deactivate")}
+              sx={{ whiteSpace: "nowrap" }}
+              >
+              Deactivate User
+              </Button>
+            ) : (
+              <Button
+              variant="contained"
+              color="success"
+              startIcon={<ActivateIcon />}
+              onClick={() => openDialog(user.user_id, "activate")}
+              sx={{ whiteSpace: "nowrap" }}
+              >
+              Activate User
               </Button>
             )}
           </Box>
@@ -256,39 +359,103 @@ const ViewUser: React.FC = () => {
       </Card>
 
       {/* Status Update Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>
           {dialogAction?.action === "activate" ? "Activate User" : "Deactivate User"}
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {dialogAction?.action === "activate"
-              ? "Are you sure you want to activate this user?"
-              : "Are you sure you want to deactivate this user?"}
+        {dialogAction?.action === "activate"
+          ? "Are you sure you want to activate this user?"
+          : "Are you sure you want to deactivate this user?"}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)} disabled={processing}>
+        Cancel
+          </Button>
+          <Button
+        onClick={handleUpdateUserStatus}
+        color={dialogAction?.action === "activate" ? "success" : "error"}
+        disabled={processing}
+          >
+        {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
+        {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Admin Toggle Dialog */}
+      <Dialog open={adminDialogOpen} onClose={() => setAdminDialogOpen(false)}>
+        <DialogTitle>
+          {dialogAdminAction?.is_admin ? "Grant Admin Privileges" : "Revoke Admin Privileges"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {dialogAdminAction?.is_admin
+              ? "Are you sure you want to make this user an admin?"
+              : "Are you sure you want to revoke admin access?"}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAdminDialogOpen(false)} disabled={processing}>
             Cancel
           </Button>
           <Button
-            onClick={() =>
-              dialogAction &&
-              handleUpdateUserStatus(
-               
-                dialogAction.action === "activate" ? "active" : "inactive"
-              )
-            }
-            color={dialogAction?.action === "activate" ? "success" : "error"}
+            onClick={handleToggleAdmin}
+            color={dialogAdminAction?.is_admin ? "success" : "error"}
             disabled={processing}
           >
-            {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
+            Confirm
+            {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Upgrade to Staff Dialog */}
+      <Dialog open={upgradeDialogOpen} onClose={() => setUpgradeDialogOpen(false)}>
+        <DialogTitle>Upgrade to Staff</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to upgrade this user to a staff member?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUpgradeDialogOpen(false)} disabled={processing}>
+            Cancel
+          </Button>
+          <Button onClick={handleUpgradeToStaff} color="info" disabled={processing}>
+            Upgrade
+            {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Downgrade to Resident Dialog */}
+      <Dialog open={downgradeDialogOpen} onClose={() => setDowngradeDialogOpen(false)}>
+        <DialogTitle>Downgrade to Resident</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ flexGrow: 1 }}>
+            Are you sure you want to downgrade this staff member to a resident?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDowngradeDialogOpen(false)} disabled={processing}>
+            Cancel
+          </Button>
+          <Button onClick={handleDowngradeToResident} color="warning" disabled={processing}>
+            Downgrade
             {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
           </Button>
         </DialogActions>
       </Dialog>
     </section>
-  );
-};
+  )
+}
 
-export default ViewUser;
+export default ViewUser
