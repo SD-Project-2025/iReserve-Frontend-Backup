@@ -494,7 +494,7 @@ const EventDetailsPage = () => {
                 </Box>
               )}
 
-              {event.fee && event.fee > 0 && (
+              {typeof event.fee === "number" && event.fee > 0 && (
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <Typography color="text.secondary">
                     Fee: ${event.fee.toFixed(2)}
