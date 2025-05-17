@@ -21,7 +21,6 @@ import {
   DialogActions,
   Stack,
   Snackbar,
- 
 } from "@mui/material"
 import {
   CalendarMonth as CalendarIcon,
@@ -65,12 +64,12 @@ interface Event {
   start_time: string
   end_time: string
   status: string
-  image_url: string
+  image_url?: string | null
   capacity: number
   registrations: number
   is_public: boolean
   registration_deadline?: string
-  fee?: number
+  fee?: number | null
   organizer?: Organizer
   is_registered?: boolean
   current_attendees?: number
@@ -117,13 +116,13 @@ const EventDetailsPage = () => {
         registrationDate: null
       };
   
-      // Only check registration status if user is resident and has residentID
+      // Only check registration status if user is resident and has residentID 
       if (user?.type === 'resident' && residentID) {
         try {
           const statusResponse = await api.get(`/events/${id}/status/${residentID}`);
           if (statusResponse.data?.data) {
             registrationStatus = {
-              isRegistered: statusResponse.data.data.status !== 'cancelled',
+              isRegistered: statusResponse.data.data.status === 'cancelled' ? false : statusResponse.data.data.isRegistered,
               status: statusResponse.data.data.status,
               paymentStatus: statusResponse.data.data.paymentStatus,
               notes: statusResponse.data.data.notes,
@@ -195,7 +194,6 @@ const EventDetailsPage = () => {
       setActionLoading(false)
     }
   }
-  
 
   const handleCancelRegistration = async () => {
     try {
@@ -441,18 +439,37 @@ const EventDetailsPage = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Box
-            component="img"
-            src={event.image_url || `/placeholder.svg?height=400&width=800&text=${encodeURIComponent(event.title)}`}
-            alt={event.title}
-            sx={{
-              width: "100%",
-              height: 400,
-              objectFit: "cover",
-              borderRadius: 2,
-              mb: 3,
-            }}
-          />
+          {event.image_url ? (
+            <Box
+              component="img"
+              src={event.image_url}
+              alt={event.title}
+              sx={{
+                width: "100%",
+                height: 400,
+                objectFit: "cover",
+                borderRadius: 2,
+                mb: 3,
+              }}
+            />
+          ) : (
+            <Box
+              sx={{
+                width: "100%",
+                height: 400,
+                backgroundColor: 'grey.100',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 2,
+                mb: 3,
+              }}
+            >
+              <Typography variant="h6" color="text.secondary">
+                No event image available
+              </Typography>
+            </Box>
+          )}
 
           <Card>
             <CardContent>
@@ -494,10 +511,10 @@ const EventDetailsPage = () => {
                 </Box>
               )}
 
-              {typeof event.fee === "number" && event.fee > 0 && (
+              {event.fee && (
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <Typography color="text.secondary">
-                    Fee: ${event.fee.toFixed(2)}
+                    Fee: ${typeof event.fee === 'number' ? event.fee.toFixed(2) : '0.00'}
                   </Typography>
                 </Box>
               )}
@@ -536,10 +553,8 @@ const EventDetailsPage = () => {
             </CardContent>
           </Card>
           <Box sx={{ display: "flex", alignItems: "center", mb:2 }}>
-                                   
-                                   <LocationMap Facility={event.facilityLoc} />
-         
-                                 </Box>
+            <LocationMap Facility={event.facilityLoc} />
+          </Box>
         </Grid>
 
         <Grid item xs={12} md={4}>
@@ -612,9 +627,9 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to register for "{event.title}"? You can cancel your registration later if needed.
           </DialogContentText>
-          {event.fee && event.fee > 0 && (
+          {event.fee && (
             <DialogContentText sx={{ mt: 2, fontWeight: 'bold' }}>
-              Note: This event has a fee of ${event.fee.toFixed(2)} that will need to be paid.
+              Note: This event has a fee of ${typeof event.fee === 'number' ? event.fee.toFixed(2) : '0.00'} that will need to be paid.
             </DialogContentText>
           )}
         </DialogContent>
@@ -635,7 +650,7 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to cancel your registration for "{event.title}"?
           </DialogContentText>
-          {event.fee && event.fee > 0 && (
+          {event.fee && (
             <DialogContentText sx={{ mt: 2, color: 'warning.main' }}>
               Note: Cancelling may affect any fees you've already paid.
             </DialogContentText>
