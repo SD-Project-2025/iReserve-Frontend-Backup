@@ -63,7 +63,7 @@ const ManageFacilitiesPage = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
-  const [response] = useState<any>(null)
+ 
 
   const fetchFacilities = async () => {
   try {
