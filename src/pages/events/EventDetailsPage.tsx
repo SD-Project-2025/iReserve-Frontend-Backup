@@ -116,7 +116,7 @@ const EventDetailsPage = () => {
         registrationDate: null
       };
   
-      // Only check registration status if user is resident and has residentID
+      // Only check registration status if user is resident and has residentID 
       if (user?.type === 'resident' && residentID) {
         try {
           const statusResponse = await api.get(`/events/${id}/status/${residentID}`);
