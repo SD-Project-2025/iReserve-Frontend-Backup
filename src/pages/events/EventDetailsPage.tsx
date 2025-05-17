@@ -139,15 +139,17 @@ const EventDetailsPage = () => {
         }
       }
 
-      const location = eventData.facilityloc?.location || "Unknown Location";
+      const location = eventData.Facility.location || "Unknown Location";
       setEvent({
         ...eventData,
         is_registered: registrationStatus.isRegistered,
         current_attendees: eventData.registrations,
         max_attendees: eventData.capacity,
+        fee: eventData.fee,
         registrationStatus, // include full status object if needed
         facilityLoc: {
-          ...eventData.facilityloc,
+          facility_id: eventData.Facility.facility_id,
+          name: eventData.Facility.name,
           location: location.trim() ? location : "Unknown Location"
         }
       });
@@ -486,7 +488,7 @@ const EventDetailsPage = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <LocationIcon color="action" sx={{ mr: 1 }} />
                 <Typography>
-                  {event.facility?.name} • {event.facility?.location}
+                  {event.facility?.name} • {event.facilityLoc.location}
                 </Typography>
               </Box>
 
@@ -511,10 +513,10 @@ const EventDetailsPage = () => {
                 </Box>
               )}
 
-              {event.fee && (
+              {event?.fee && (
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <Typography color="text.secondary">
-                    Fee: ${typeof event.fee === 'number' ? event.fee.toFixed(2) : '0.00'}
+                    Fee: R{event?.fee}
                   </Typography>
                 </Box>
               )}
@@ -627,9 +629,9 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to register for "{event.title}"? You can cancel your registration later if needed.
           </DialogContentText>
-          {event.fee && (
+          {event?.fee && (
             <DialogContentText sx={{ mt: 2, fontWeight: 'bold' }}>
-              Note: This event has a fee of ${typeof event.fee === 'number' ? event.fee.toFixed(2) : '0.00'} that will need to be paid.
+              Note: This event has a fee of ${typeof event.fee === 'number' ? event?.fee : '0.00'} that will need to be paid.
             </DialogContentText>
           )}
         </DialogContent>
@@ -650,7 +652,7 @@ const EventDetailsPage = () => {
           <DialogContentText>
             Are you sure you want to cancel your registration for "{event.title}"?
           </DialogContentText>
-          {event.fee && (
+          {event?.fee && (
             <DialogContentText sx={{ mt: 2, color: 'warning.main' }}>
               Note: Cancelling may affect any fees you've already paid.
             </DialogContentText>
