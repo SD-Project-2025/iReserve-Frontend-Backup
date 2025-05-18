@@ -6,11 +6,11 @@ export default {
     transformIgnorePatterns: [
     "/node_modules/(?!@babel)"
   ],
-  testPathIgnorePatterns: [
-    "/node_modules/",
-    "<rootDir>/build/",
-    "<rootDir>/dist/"
-  ],
+  // testPathIgnorePatterns: [
+  //   "/node_modules/",
+  //   "<rootDir>/build/",
+  //   "<rootDir>/dist/"
+  // ],
 
 
 
