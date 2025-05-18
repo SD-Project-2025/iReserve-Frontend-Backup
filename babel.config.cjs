@@ -5,6 +5,7 @@ module.exports = {
     '@babel/preset-react',
   ],
   plugins: [
-    '@babel/plugin-proposal-import-meta'
+    
+    '@babel/plugin-syntax-import-meta',
   ],
 };

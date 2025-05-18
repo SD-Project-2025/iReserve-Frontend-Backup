@@ -3,6 +3,9 @@ export default {
   transform: {
     "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
   },
+  transformIgnorePatterns: [
+    "/node_modules/(?!@babel)"
+  ],
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   moduleFileExtensions: ["js", "jsx", "ts", "tsx"],
   moduleNameMapper: {
