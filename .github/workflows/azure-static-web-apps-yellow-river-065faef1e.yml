@@ -34,6 +34,7 @@ jobs:
           output_location: "build" # Built app content directory - optional
         env:
           VITE_API_URL : ${{ secrets.VITE_API_URL }}
+          VITE_OPENWEATHER_API_KEY : ${{ secrets.VITE_OPENWEATHER_API_KEY }}
           VITE_EMAIL_URL : ${{ secrets.VITE_EMAIL_URL }}
           VITE_REDIRECT_URL : ${{ secrets.VITE_REDIRECT_URL }}
           VITE_GOOGLE_MAPS_API_KEY :  ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
