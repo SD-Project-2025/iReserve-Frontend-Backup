@@ -28,6 +28,7 @@ import NotificationsPage from "./pages/notifications/NotificationsPage"
 import PaymentSuccessful from "./pages/payments/PaymentSuccessful"  
 import PaymentCancelled from "./pages/payments/PaymentCancelled"
 import NotFoundPage from "./pages/NotFoundPage"
+import AccessDenied from "./pages/AccessDenied"
 
 // Admin Pages
 import ManageFacilitiesPage from "./pages/admin/ManageFacilitiesPage"
@@ -152,6 +153,8 @@ function App() {
 
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
+      {/* Access Denied Route */}
+      <Route path="/access/denied" element={<AccessDenied />} />
     </Routes>
   )
 }
