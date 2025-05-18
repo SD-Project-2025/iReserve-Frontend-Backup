@@ -29,8 +29,8 @@ import "react-toastify/dist/ReactToastify.css"
 import { useNavigate } from "react-router-dom"
 import {
   Search as SearchIcon,
-  Block as BlockIcon,
-  CheckCircle as ActivateIcon,
+ 
+   
   Visibility as ViewIcon,
   PersonOutline as PersonIcon,
   PeopleAlt as PeopleIcon,
@@ -75,14 +75,11 @@ const ManageUsersPage = () => {
   const [filterStatus, setFilterStatus] = useState(() => localStorage.getItem("userStatus") || "all")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [adminDialogOpen, setAdminDialogOpen] = useState(false)
-  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
-  const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false)
+
   const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
   const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(
     null
   )
-  const [dialogUpgradeId, setDialogUpgradeId] = useState<number | null>(null)
-  const [dialogDowngradeId, setDialogDowngradeId] = useState<number | null>(null)
   const [processing, setProcessing] = useState(false)
   const navigate = useNavigate()
   const [quickViewOpen, setQuickViewOpen] = useState(false)
@@ -110,6 +107,7 @@ const ManageUsersPage = () => {
         if (userRes.data?.data) setUsers(userRes.data.data)
         if (staffRes.data?.data) setStaff(staffRes.data.data)
         if (residentRes.data?.data) setResidents(residentRes.data.data)
+         
       } catch (err: any) {
         console.error("Error fetching data:", err)
         toast.error("Failed to load user data. Please try again later.")
@@ -205,88 +203,6 @@ const ManageUsersPage = () => {
     }
   }
 
-  const handleUpgradeToStaff = async () => {
-    if (!dialogUpgradeId) return
-    try {
-      setProcessing(true)
-      const res = await api.post(`/manage/users/${dialogUpgradeId}/upgrade`, {
-        employee_id: "EMP12345",
-        position: "Facility Manager",
-        department: "Operations",
-      })
-      if (res.data?.success) {
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.user_id === dialogUpgradeId
-              ? { ...res.data.data, user_type: "staff" }
-              : user
-          )
-        )
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to upgrade user to staff.")
-    } finally {
-      setProcessing(false)
-      setUpgradeDialogOpen(false)
-      setDialogUpgradeId(null)
-    }
-  }
-
-  const handleDowngradeToResident = async () => {
-    if (!dialogDowngradeId) return
-    try {
-      setProcessing(true)
-      const res = await api.post(`/manage/users/${dialogDowngradeId}/downgrade`)
-      if (res.data?.success) {
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.user_id === dialogDowngradeId
-              ? { ...user, user_type: "resident", is_admin: false }
-              : user
-          )
-        )
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to downgrade user to resident.")
-    } finally {
-      setProcessing(false)
-      setDowngradeDialogOpen(false)
-      setDialogDowngradeId(null)
-    }
-  }
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "resident":
-        return (
-          <Chip label="Resident" color="default" size="small" icon={<PersonIcon fontSize="small" />} />
-        )
-      case "staff":
-        return (
-          <Chip label="Staff" color="primary" size="small" icon={<WorkIcon fontSize="small" />} />
-        )
-      default:
-        return type
-    }
-  }
-
-  // Dialog open helpers
-  const openDialog = (id: number, action: string) => {
-    setDialogAction({ id, action })
-    setDialogOpen(true)
-  }
-  const openAdminDialog = (id: number, makeAdmin: boolean) => {
-    setDialogAdminAction({ id, is_admin: makeAdmin })
-    setAdminDialogOpen(true)
-  }
-  const openUpgradeDialog = (id: number) => {
-    setDialogUpgradeId(id)
-    setUpgradeDialogOpen(true)
-  }
-  const openDowngradeDialog = (id: number) => {
-    setDialogDowngradeId(id)
-    setDowngradeDialogOpen(true)
-  }
 
   // Status color helper
   const getStatusColor = (status: string) => {
@@ -324,45 +240,20 @@ const ManageUsersPage = () => {
       headerName: "Actions",
       width: 280,
       renderCell: (params) => {
-        const isAdmin = params.row.is_admin ?? false
+        
         return (
           <Box sx={{ display: "flex", gap: 1 }}>
             <Button
               size="small"
               startIcon={<ViewIcon />}
               onClick={() => {
-                navigate(`/admin/users/${params.row.user_id}`)
+                navigate(`/admin/users/${params.row.user_id}`,{state:{userType :params.row.user_type,userData:params.row}})
               }}
               sx={{ mb: 2 }}
             >
               View
             </Button>
-            <Button
-              size="small"
-              color={isAdmin ? "error" : "success"}
-              onClick={() => openAdminDialog(params.row.user_id, !isAdmin)}
-            >
-              {isAdmin ? "Revoke Admin" : "Make Admin"}
-            </Button>
-            {params.row.status === "active" ? (
-              <Button
-                size="small"
-                color="error"
-                startIcon={<BlockIcon />}
-                onClick={() => openDialog(params.row.user_id, "deactivate")}
-              >
-                Deactivate
-              </Button>
-            ) : (
-              <Button
-                size="small"
-                color="success"
-                startIcon={<ActivateIcon />}
-                onClick={() => openDialog(params.row.user_id, "activate")}
-              >
-                Activate
-              </Button>
-            )}
+            
           </Box>
         )
       },
@@ -391,18 +282,12 @@ const ManageUsersPage = () => {
             size="small"
             startIcon={<ViewIcon />}
             onClick={() => {
-              navigate(`/admin/users/${params.row.user_id}`)
+              navigate(`/admin/users/${params.row.user_id}`,{state:{userType :"staff",userData:params.row}})
             }}
           >
             View
           </Button>
-          <Button
-            size="small"
-            color="warning"
-            onClick={() => openDowngradeDialog(params.row.user_id)}
-          >
-            Downgrade
-          </Button>
+          
         </Box>
       ),
     },
@@ -428,19 +313,14 @@ const ManageUsersPage = () => {
             size="small"
             startIcon={<ViewIcon />}
             onClick={() => {
-              navigate(`/admin/users/${params.row.user_id}`)
+              navigate(`/admin/users/${params.row.user_id}`,{state:{userType :"resident",userData:params.row}})
+              
             }}
             sx={{ mb: 2 }}
           >
             View
           </Button>
-          <Button
-            size="small"
-            color="info"
-            onClick={() => openUpgradeDialog(params.row.user_id)}
-          >
-            Upgrade
-          </Button>
+         
         </Box>
       ),
     },
@@ -598,50 +478,13 @@ const ManageUsersPage = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Upgrade to Staff Dialog */}
-        <Dialog open={upgradeDialogOpen} onClose={() => setUpgradeDialogOpen(false)}>
-          <DialogTitle>Upgrade to Staff</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Are you sure you want to upgrade this user to a staff member?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setUpgradeDialogOpen(false)} disabled={processing}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpgradeToStaff} color="info" disabled={processing}>
-              Upgrade
-              {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Downgrade to Resident Dialog */}
-        <Dialog open={downgradeDialogOpen} onClose={() => setDowngradeDialogOpen(false)}>
-          <DialogTitle>Downgrade to Resident</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Are you sure you want to downgrade this staff member to a resident?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDowngradeDialogOpen(false)} disabled={processing}>
-              Cancel
-            </Button>
-            <Button onClick={handleDowngradeToResident} color="warning" disabled={processing}>
-              Downgrade
-              {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         <Dialog open={quickViewOpen} onClose={() => setQuickViewOpen(false)}>
           <DialogTitle>{quickViewUser?.name}</DialogTitle>
           <DialogContent>
             <DialogContentText>Email: {quickViewUser?.email}</DialogContentText>
             <DialogContentText>
-              Type: {getTypeLabel(quickViewUser?.user_type || "")}
+              Type: {quickViewUser?.user_type === "staff" ? "Staff" : "Resident"}
             </DialogContentText>
             <DialogContentText>Status: {quickViewUser?.status}</DialogContentText>
             <DialogContentText>
