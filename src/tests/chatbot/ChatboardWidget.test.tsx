@@ -53,3 +53,12 @@ describe('ChatbotWidget', () => {
     expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
   });
 });
+
+//Important Note:
+//This widget has a diferrent repo to run the tests but if you wish th soee the code cover rage do the following
+//Add this to jest.config.js
+
+//"test:coverage": "vitest run --coverage"
+ //"test": "vitest",
+ //ANd run the following command
+ //npx vitest run --coverage src/tests/chatbot/ChatboardWidget.test.tsx --run
