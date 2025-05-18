@@ -68,6 +68,7 @@ const ViewUser: React.FC = () => {
   const [resident, setResident] = useState<Resident | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const userType = location.state?.userType || user?.type || "unknown"
   const userData = location.state?.userData
   
@@ -197,6 +198,11 @@ useEffect(() => {
       if (res.data?.success) {
         setUser({ ...user, type: "staff" })
         setError(null)
+        // Show a success message on the UI
+        setSuccessMessage("User successfully upgraded to staff.")
+        setTimeout(() => {
+          setSuccessMessage(null)
+        }, 3000)
       }
     } catch (err: any) {
       setError(
@@ -284,9 +290,13 @@ useEffect(() => {
       </Alert>
     )
   }
-
   return (
     <section>
+      {successMessage && (
+        <Alert severity="success" sx={{ my: 3 }}>
+          {successMessage}
+        </Alert>
+      )}
       <Button
         startIcon={<BackIcon />}
         onClick={() => navigate("/admin/users")}
