@@ -39,6 +39,8 @@ import { useAuth } from "@/contexts/AuthContext"
 import { AxiosError } from "axios"
 import LocationMap from "@/services/Map"
 
+const payfastLogo = "https://payfast.io/wp-content/uploads/2024/12/Payfast-logo.svg"
+
 interface Organizer {
   staff_id: number
   employee_id: string
@@ -95,31 +97,27 @@ const EventDetailsPage = () => {
   
   const fetchEventDetails = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
   
-      // Get user profile
-      const userProfileResponse = await api.get("/auth/me");
-      const userProfile = userProfileResponse.data;
-      const residentID = userProfile?.data?.profile?.resident_id;
+      const userProfileResponse = await api.get("/auth/me")
+      const userProfile = userProfileResponse.data
+      const residentID = userProfile?.data?.profile?.resident_id
   
-      // Fetch event details
-      const eventResponse = await api.get(`/events/${id}`);
-      const eventData = eventResponse.data.data;
-  
-      // Default registration status
+      const eventResponse = await api.get(`/events/${id}`)
+      const eventData = eventResponse.data.data
+
       let registrationStatus = {
         isRegistered: false,
         status: 'not_registered',
         paymentStatus: null,
         notes: null,
         registrationDate: null
-      };
-  
-      // Only check registration status if user is resident and has residentID 
+      }
+
       if (user?.type === 'resident' && residentID) {
         try {
-          const statusResponse = await api.get(`/events/${id}/status/${residentID}`);
+          const statusResponse = await api.get(`/events/${id}/status/${residentID}`)
           if (statusResponse.data?.data) {
             registrationStatus = {
               isRegistered: statusResponse.data.data.status === 'cancelled' ? false : statusResponse.data.data.isRegistered,
@@ -127,91 +125,83 @@ const EventDetailsPage = () => {
               paymentStatus: statusResponse.data.data.paymentStatus,
               notes: statusResponse.data.data.notes,
               registrationDate: statusResponse.data.data.registrationDate
-            };
+            }
           }
         } catch (err) {
-          const axiosError = err as AxiosError;
-          // Only log if it's not a 404 error
+          const axiosError = err as AxiosError
           if (axiosError.response?.status !== 404) {
-            console.error("Failed to check registration status:", err);
-            setError("Failed to check registration status");
+            console.error("Failed to check registration status:", err)
+            setError("Failed to check registration status")
           }
         }
       }
 
-      const location = eventData.Facility.location || "Unknown Location";
+      const location = eventData.Facility.location || "Unknown Location"
       setEvent({
         ...eventData,
         is_registered: registrationStatus.isRegistered,
         current_attendees: eventData.registrations,
         max_attendees: eventData.capacity,
         fee: eventData.fee,
-        registrationStatus, // include full status object if needed
+        registrationStatus,
         facilityLoc: {
           facility_id: eventData.Facility.facility_id,
           name: eventData.Facility.name,
           location: location.trim() ? location : "Unknown Location"
         }
-      });
+      })
     } catch (err) {
-      setError("Failed to load event details");
-      console.error(err);
+      setError("Failed to load event details")
+      console.error(err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (id) fetchEventDetails()
   }, [id, user?.id])
 
- const handleRegister = async () => {
-  try {
-    setActionLoading(true)
-    const usr= await api.get(`/auth/me`)
-    //const userProfile = usr.data.data
-    const residentID = usr.data.data.profile?.resident_id;
-    console.log(residentID)
-    // Add payment initiation logic for paid events
-    if (event?.fee && event.fee > 0) {
-      // Initiate payment for paid events
-      const paymentResponse = await api.post(`/events/${id}/initiate-payment`, {
-        resident_id: residentID,
-      });
-      
-      // Redirect to Payfast payment page
-      window.location.href = paymentResponse.data.data.payment_url;
-      return;
-    }
+  const handleRegister = async () => {
+    try {
+      setActionLoading(true)
+      const usr = await api.get(`/auth/me`)
+      const residentID = usr.data.data.profile?.resident_id
 
-    // Existing free registration logic
-    const response = await api.post(`/events/${id}/register`)
-    
-    if (response.data.message?.includes("Already registered")) {
+      if (event?.fee && event.fee > 0) {
+        const paymentResponse = await api.post(`/events/${id}/initiate-payment`, {
+          resident_id: residentID,
+        })
+        window.location.href = paymentResponse.data.data.payment_url
+        return
+      }
+
+      const response = await api.post(`/events/${id}/register`)
+      if (response.data.message?.includes("Already registered")) {
+        await fetchEventDetails()
+        return
+      }
+
       await fetchEventDetails()
-      return
+      setConfirmDialogOpen(false)
+      setSuccess("Successfully registered for the event!")
+      
+      await api.post("/notifications", {
+        title: "Event Registration",
+        message: `You have successfully registered for the event ${event?.title}!`,
+        type: "event",
+        related_id: id,
+        related_type: "event",
+      })
+
+      setTimeout(() => setSuccess(null), 5000)
+    } catch (err: any) {
+      setSuccess(null)
+      setError(err.response?.data?.message || "Registration failed. Please try again.")
+    } finally {
+      setActionLoading(false)
     }
-
-    await fetchEventDetails()
-    setConfirmDialogOpen(false)
-    setSuccess("Successfully registered for the event!")
-    
-    await api.post("/notifications", {
-      title: "Event Registration",
-      message: `You have successfully registered for the event ${event?.title}!`,
-      type: "event",
-      related_id: id,
-      related_type: "event",
-    })
-
-    setTimeout(() => setSuccess(null), 5000)
-  } catch (err: any) {
-    setSuccess(null)
-    setError(err.response?.data?.message || "Registration failed. Please try again.")
-  } finally {
-    setActionLoading(false)
   }
-}
 
   const handleCancelRegistration = async () => {
     try {
@@ -221,7 +211,6 @@ const EventDetailsPage = () => {
       setCancelDialogOpen(false)
       setSuccess("Registration cancelled successfully!")
   
-      // Sending a notification for canceled registration
       await api.post("/notifications", {
         title: "Event Registration Cancelled",
         message: `You have successfully cancelled your registration for the event ${event?.title}.`,
@@ -252,7 +241,7 @@ const EventDetailsPage = () => {
       setSuccess("Event cancelled successfully!")
       await api.post("/notifications", {
         title: "Event Cancelled",
-        message: `You have successfully cancelled your the event ${event?.title}.`,
+        message: `You have successfully cancelled the event ${event?.title}.`,
         type: "event",
         related_id: id,
         related_type: "event",
@@ -334,13 +323,8 @@ const EventDetailsPage = () => {
 
   const renderRegistrationButtons = () => {
     if (!event) return null
+    if (user?.type === 'staff') return null
 
-    // If user is staff, don't show registration buttons
-    if (user?.type === 'staff') {
-      return null
-    }
-
-    // If no user is logged in
     if (!user) {
       return (
         <Button
@@ -368,16 +352,32 @@ const EventDetailsPage = () => {
         return (
           <Stack spacing={2}>
             {!event.is_registered ? (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<PersonIcon />}
-                onClick={() => setConfirmDialogOpen(true)}
-                disabled={actionLoading}
-                fullWidth
-              >
-                {actionLoading ? <CircularProgress size={24} /> : "Register for Event"}
-              </Button>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<PersonIcon />}
+                  onClick={() => setConfirmDialogOpen(true)}
+                  disabled={actionLoading}
+                  fullWidth
+                >
+                  {actionLoading ? <CircularProgress size={24} /> : 
+                    (event.fee ? "Pay to Register" : "Register for Event")}
+                </Button>
+                {event.fee && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Secured by
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={payfastLogo}
+                      alt="PayFast"
+                      sx={{ height: 20 }}
+                    />
+                  </Box>
+                )}
+              </Box>
             ) : (
               <Button
                 variant="outlined"
@@ -532,8 +532,19 @@ const EventDetailsPage = () => {
               {event?.fee && (
                 <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                   <Typography color="text.secondary">
-                    Fee: R{event?.fee}
+                    Fee: R{event.fee}
                   </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+                    <Typography variant="caption" sx={{ mr: 1 }}>
+                      Powered by
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={payfastLogo}
+                      alt="PayFast"
+                      sx={{ height: 20 }}
+                    />
+                  </Box>
                 </Box>
               )}
 
@@ -646,9 +657,22 @@ const EventDetailsPage = () => {
             Are you sure you want to register for "{event.title}"? You can cancel your registration later if needed.
           </DialogContentText>
           {event?.fee && (
-            <DialogContentText sx={{ mt: 2, fontWeight: 'bold' }}>
-              Note: This event has a fee of ${typeof event.fee === 'number' ? event?.fee : '0.00'} that will need to be paid.
-            </DialogContentText>
+            <>
+              <DialogContentText sx={{ mt: 2, fontWeight: 'bold' }}>
+                Note: This event has a fee of R{event.fee} that will need to be paid.
+              </DialogContentText>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, gap: 1 }}>
+                <Typography variant="caption">
+                  Secure payments processed by
+                </Typography>
+                <Box
+                  component="img"
+                  src={payfastLogo}
+                  alt="PayFast"
+                  sx={{ height: 20 }}
+                />
+              </Box>
+            </>
           )}
         </DialogContent>
         <DialogActions>
@@ -656,7 +680,7 @@ const EventDetailsPage = () => {
             Cancel
           </Button>
           <Button onClick={handleRegister} color="primary" disabled={actionLoading}>
-            {actionLoading ? <CircularProgress size={24} /> : "Register"}
+            {actionLoading ? <CircularProgress size={24} /> : "Continue to Payment"}
           </Button>
         </DialogActions>
       </Dialog>
