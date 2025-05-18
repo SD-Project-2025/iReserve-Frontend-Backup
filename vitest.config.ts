@@ -19,7 +19,6 @@ export default defineConfig({
       include: ['src/components/chatbot/ChatbotWidget.tsx'],
       exclude: ['**/*.test.tsx'],
       all: true,
-      // Add thresholds like this:
       thresholds: {
         autoUpdate: true,
       }
