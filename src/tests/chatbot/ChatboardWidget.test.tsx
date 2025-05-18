@@ -1,5 +1,3 @@
-
-
 //@ts-ignore
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -8,7 +6,7 @@ import ChatbotWidget from '../../components/chatbot/ChatbotWidget';
 
 describe('ChatbotWidget', () => {
   beforeEach(() => {
-    // Mock environment variables
+    
     process.env = {
       ...process.env,
       VITE_CHATBOT_AGENT_ID: 'test-agent-id',
@@ -45,13 +43,11 @@ describe('ChatbotWidget', () => {
     expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
   });
 
- 
-
   test('cleans up tooltip on unmount', () => {
     const { unmount } = render(<ChatbotWidget />);
     const script = document.querySelector('script[src*="df-messenger.js"]');
     script?.dispatchEvent(new Event('load'));
-    vi.advanceTimersByTime(4000); // Show tooltip
+    vi.advanceTimersByTime(4000); 
 
     unmount();
     expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
