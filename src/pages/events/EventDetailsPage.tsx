@@ -165,37 +165,53 @@ const EventDetailsPage = () => {
     if (id) fetchEventDetails()
   }, [id, user?.id])
 
-  const handleRegister = async () => {
-    try {
-      setActionLoading(true)
-      const response = await api.post(`/events/${id}/register`)
-  
-      if (response.data.message?.includes("Already registered")) {
-        await fetchEventDetails()
-        return
-      }
-  
-      await fetchEventDetails()
-      setConfirmDialogOpen(false)
-      setSuccess("Successfully registered for the event!")
+ const handleRegister = async () => {
+  try {
+    setActionLoading(true)
+    const usr= await api.get(`/auth/me`)
+    //const userProfile = usr.data.data
+    const residentID = usr.data.data.profile?.resident_id;
+    console.log(residentID)
+    // Add payment initiation logic for paid events
+    if (event?.fee && event.fee > 0) {
+      // Initiate payment for paid events
+      const paymentResponse = await api.post(`/events/${id}/initiate-payment`, {
+        resident_id: residentID,
+      });
       
-      // Sending a notification for successful registration
-      await api.post("/notifications", {
-        title: "Event Registration",
-        message: `You have successfully registered for the event ${event?.title}!`,
-        type: "event",
-        related_id: id,
-        related_type: "event",
-      })
-  
-      setTimeout(() => setSuccess(null), 5000)
-    } catch (err: any) {
-      setSuccess(null)
-      setError(err.response?.data?.message || "Registration failed. Please try again.")
-    } finally {
-      setActionLoading(false)
+      // Redirect to Payfast payment page
+      window.location.href = paymentResponse.data.data.payment_url;
+      return;
     }
+
+    // Existing free registration logic
+    const response = await api.post(`/events/${id}/register`)
+    
+    if (response.data.message?.includes("Already registered")) {
+      await fetchEventDetails()
+      return
+    }
+
+    await fetchEventDetails()
+    setConfirmDialogOpen(false)
+    setSuccess("Successfully registered for the event!")
+    
+    await api.post("/notifications", {
+      title: "Event Registration",
+      message: `You have successfully registered for the event ${event?.title}!`,
+      type: "event",
+      related_id: id,
+      related_type: "event",
+    })
+
+    setTimeout(() => setSuccess(null), 5000)
+  } catch (err: any) {
+    setSuccess(null)
+    setError(err.response?.data?.message || "Registration failed. Please try again.")
+  } finally {
+    setActionLoading(false)
   }
+}
 
   const handleCancelRegistration = async () => {
     try {
