@@ -1,5 +1,5 @@
 
-// ChatboardWidget.test.tsx
+
 //@ts-ignore
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
