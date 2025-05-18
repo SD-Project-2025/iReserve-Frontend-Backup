@@ -12,7 +12,7 @@ import { Parallax } from "react-parallax"
 useScroll;useTransform;
 // Video and image URLs from Vercel Blob storage
 const mediaAssets = {
-  droneVideo: "https://pcgyhzbplxptutua.public.blob.vercel-storage.com/drone-bg-PbQBL5xKwWRW6JKLqwtr8VqqUJG4eC.mp4",
+  droneVideo: "https://pcgyhzbplxptutua.public.blob.vercel-storage.com/watermarked_preview%20%281%29-n5hdjPh2E5LR6y01z0FlGVgIQ3U8ke.mp4",
   communityImage1: "https://pcgyhzbplxptutua.public.blob.vercel-storage.com/1-2TQKnG3iqmLKNptyM4B2dCpI2hxTJ7.jpg",
   communityImage2: "https://pcgyhzbplxptutua.public.blob.vercel-storage.com/istockphoto-1088536252-612x612-yFTYKjlPAR0lL92wqFEGFbVpfVkVsf.jpg",
   facilityImage: "https://pcgyhzbplxptutua.public.blob.vercel-storage.com/multi-sport-GxSQni0Gu7z1ewfL25ADg0Ifq7RDz2.jpg",
