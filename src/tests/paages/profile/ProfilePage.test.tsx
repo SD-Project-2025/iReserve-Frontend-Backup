@@ -33,7 +33,6 @@ jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(),
 }))
 
-      email: "
 
 describe("ProfilePage Component", () => {
   const renderProfilePage = () => {
