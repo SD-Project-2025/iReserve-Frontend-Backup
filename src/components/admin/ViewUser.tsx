@@ -31,6 +31,7 @@ import {
   AdminPanelSettings as AdminIcon,
 } from "@mui/icons-material"
 import { api } from "@/services/api" // Adjust path if needed
+import { Label } from "recharts"
 
 interface User {
   user_id: number
@@ -41,15 +42,35 @@ interface User {
   created_at: string
   is_admin?: boolean
 }
+interface Staff {
+  staff_id: number
+  user_id: number
+  employee_id: string
+  position: string
+  department: string
+  is_admin: boolean
+}
+interface Resident {
+  resident_id: number
+  user_id: number
+  encrypted_address: string
+  membership_type: "basic" | "premium" | "vip"
+  membership_start_date: string
+  membership_end_date: string
+}
 
 const ViewUser: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
+  const navigate = useNavigate()  
   const location = useLocation()
   const [user, setUser] = useState<User | null>(null)
+  const [staff, setStaff] = useState<Staff | null>(null)
+  const [resident, setResident] = useState<Resident | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
+  const userType = location.state?.userType || user?.type || "unknown"
+  const userData = location.state?.userData
+  
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false)
   const [adminDialogOpen, setAdminDialogOpen] = useState(false)
@@ -91,6 +112,19 @@ const ViewUser: React.FC = () => {
 
     fetchUser()
   }, [id, location.state])
+useEffect(() => {
+  switch (userType) {
+    case "staff":
+      setStaff(userData)
+      break
+    case "resident":
+      setResident(userData)
+      break
+    default:
+      setStaff(null)
+      setResident(null)
+  }
+}, [userType, userData])
 
   // Handle user status update
   const handleUpdateUserStatus = async () => {
@@ -145,10 +179,19 @@ const ViewUser: React.FC = () => {
     if (!user) return
     try {
       setProcessing(true)
+      // Get the employee_id value from the input field
+      const code = "EMP"
+      const employeeIdInput = document.querySelector<HTMLInputElement>('input[name="employee_id"]')
+      const employee_id = employeeIdInput ? code + employeeIdInput.value : ""
+
+      if (!employee_id) {
+        setError("Employee ID is required.")
+        setProcessing(false)
+        return
+      }
+
       const res = await api.post(`/manage/users/${user?.user_id}/upgrade`, {
-        employee_id: "EMP12345",
-        position: "Facility Manager",
-        department: "Operations",
+        employee_id,
       })
 
       if (res.data?.success) {
@@ -216,16 +259,7 @@ const ViewUser: React.FC = () => {
     }
   }
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "resident":
-        return "Resident"
-      case "staff":
-        return "Staff"
-      default:
-        return type
-    }
-  }
+   
 
   if (loading) {
     return (
@@ -280,25 +314,59 @@ const ViewUser: React.FC = () => {
 
           <Divider sx={{ my: 2 }} />
 
-          <Grid container spacing={3}>
+            <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>
-                <strong>User ID:</strong> {user.user_id}
+              <strong>User ID:</strong> {user.user_id}
               </Typography>
               <Typography variant="subtitle1" gutterBottom>
-                <strong>Type:</strong> {getTypeLabel(user.type)}
+              <strong>Type:</strong> {userType}
               </Typography>
+              {/* Staff-specific info */}
+              {userType === "staff" && staff && (
+              <>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Employee ID:</strong> {staff.employee_id}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Position:</strong> {staff.position}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Department:</strong> {staff.department}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Admin:</strong> {staff.is_admin ? "Yes" : "No"}
+                </Typography>
+              </>
+              )}
+              {/* Resident-specific info */}
+              {userType === "resident" && resident && (
+              <>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Membership Type:</strong> {resident.membership_type}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Membership Start:</strong> {new Date(resident.membership_start_date).toLocaleDateString()}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Membership End:</strong> {new Date(resident.membership_end_date).toLocaleDateString()}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Address:</strong> {resident.encrypted_address}
+                </Typography>
+              </>
+              )}
             </Grid>
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>
-                <strong>Status:</strong>{" "}
-                <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
+              <strong>Status:</strong>{" "}
+              <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
               </Typography>
               <Typography variant="subtitle1" gutterBottom>
-                <strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}
+              <strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}
               </Typography>
             </Grid>
-          </Grid>
+            </Grid>
 
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}>
             {/* Toggle Admin Role */}
@@ -312,23 +380,23 @@ const ViewUser: React.FC = () => {
             </Button>
 
             {/* Upgrade/Downgrade Button */}
-            {user.type === "resident" ? (
+            {userType === "resident" ? (
               <Button
-                variant="contained"
-                color="info"
-                startIcon={<WorkIcon />}
-                onClick={openUpgradeDialog}
+              variant="contained"
+              color="info"
+              startIcon={<WorkIcon />}
+              onClick={openUpgradeDialog}
               >
-                Upgrade to Staff
+              Upgrade to Staff
               </Button>
             ) : (
               <Button
-                variant="contained"
-                color="warning"
-                startIcon={<PersonAddIcon />}
-                onClick={openDowngradeDialog}
+              variant="contained"
+              color="warning"
+              startIcon={<PersonAddIcon />}
+              onClick={openDowngradeDialog}
               >
-                Downgrade to Resident
+              Downgrade to Resident
               </Button>
             )}
 
@@ -421,6 +489,15 @@ const ViewUser: React.FC = () => {
       <Dialog open={upgradeDialogOpen} onClose={() => setUpgradeDialogOpen(false)}>
         <DialogTitle>Upgrade to Staff</DialogTitle>
         <DialogContent>
+          <Box sx={{ mb: 2 }}>
+            <Label>Employee ID</Label>
+            <input
+              type="text"
+              name="employee_id"
+              placeholder="Enter Employee ID"
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+            />
+          </Box>
           <DialogContentText>
             Are you sure you want to upgrade this user to a staff member?
           </DialogContentText>
