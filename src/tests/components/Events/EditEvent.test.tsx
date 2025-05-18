@@ -1,6 +1,6 @@
-import React from 'react';
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes} from 'react-router-dom';
 import '@testing-library/jest-dom';
 import EditEvent from '@/components/Events/EditEvent';
 import { api } from '@/services/api';
