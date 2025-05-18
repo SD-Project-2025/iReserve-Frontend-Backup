@@ -1,7 +1,7 @@
-import React from "react"
+
 import { render, screen, fireEvent } from "@testing-library/react"
 import ProfilePage from "@/pages/profile/ProfilePage"
-
+import React from "react"
 // Mock useAuth hook
 jest.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
@@ -74,10 +74,7 @@ describe("ProfilePage Component", () => {
     const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {})
 
     const originalFormData = global.FormData
-    const mockSubmit = jest.fn(() => {
-      throw new Error("API Error")
-    })
-
+    
     // Replace native form data temporarily to simulate failure
     global.FormData = class {
       get() {
