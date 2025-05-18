@@ -32,28 +32,6 @@ describe('ChatbotWidget', () => {
     expect(link).toBeInTheDocument();
   });
 
-  // test('loads Dialogflow script in body', () => {
-  //   render(<ChatbotWidget />);
-  //   const script = document.querySelector('script[src*="df-messenger.js"]');
-    
-  //   // Check both DOM attribute and property
-  //   expect(script).toBeInTheDocument();
-  //   expect(script).toHaveProperty('async', true);
-  //   expect(script?.getAttribute('async')).toBe('');
-  // });
-
-  // test('creates df-messenger element after script load', async () => {
-  //   render(<ChatbotWidget />);
-  //   const script = document.querySelector('script[src*="df-messenger.js"]');
-  //   script?.dispatchEvent(new Event('load'));
-
-  //   await waitFor(() => {
-  //     const dfMessenger = document.querySelector('df-messenger');
-  //     expect(dfMessenger).toBeInTheDocument();
-  //     expect(dfMessenger).toHaveAttribute('project-id', 'test-project-id');
-  //     expect(dfMessenger).toHaveAttribute('agent-id', 'test-agent-id');
-  //   });
-  // });
 
   test('shows and auto-closes tooltip', () => {
     render(<ChatbotWidget />);
