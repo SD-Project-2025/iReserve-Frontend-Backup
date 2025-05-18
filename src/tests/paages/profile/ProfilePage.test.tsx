@@ -2,6 +2,8 @@
 import { render, screen, fireEvent } from "@testing-library/react"
 import ProfilePage from "@/pages/profile/ProfilePage"
 //@ts-ignore
+import { useNavigate } from "react-router-dom"
+//@ts-ignore
 import React from "react"
 // Mock useAuth hook
 jest.mock("@/contexts/AuthContext", () => ({
