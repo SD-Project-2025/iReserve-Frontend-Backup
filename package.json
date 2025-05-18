@@ -9,6 +9,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "start": "node index.js"
     
   },
@@ -21,6 +23,7 @@
     "@mui/x-data-grid": "^6.19.4",
     "@mui/x-date-pickers": "^6.19.4",
     "axios": "^1.6.7",
+    "babel-plugin-module-resolver": "^5.0.2",
     "chart.js": "^4.4.9",
     "date-fns": "^2.30.0",
     "framer-motion": "^12.7.4",
@@ -36,17 +39,22 @@
     "react-router-dom": "^6.22.1",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.3",
-    "resize-observer-polyfill": "^1.5.1"
+    "resize-observer-polyfill": "^1.5.1",
+    "vitest": "^3.1.3"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
+<<<<<<< HEAD
     "@babel/plugin-syntax-import-meta": "^7.10.4",
+=======
+>>>>>>> 9967a30126cc03c15e5c165b8379f52c439f7c0f
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
     "@jest/globals": "^29.7.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/google.maps": "^3.58.1",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.11.19",
