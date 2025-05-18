@@ -109,11 +109,11 @@ const ViewUser: React.FC = () => {
           return
         }
 
-        const response = await api.get(`/manage/users`)
-        const foundUser = response.data.data.find((u: User) => u.user_id.toString() === id)
+        const response = await api.get(`/auth/me`)
+       
 
-        if (foundUser) {
-          setUser(foundUser)
+        if (response.data) {
+          setUser(response.data)
         } else {
           setError("User not found")
         }
@@ -145,30 +145,6 @@ useEffect(() => {
 const showSnackbar = (message: string, severity: "success" | "error" | "info" | "warning") => {
   setSnackbar({ open: true, message, severity })
 }
-
-  // Handle user status update
-  const handleUpdateUserStatus = async () => {
-    if (!dialogAction || !user) return
-    try {
-      setProcessing(true)
-      const newStatus = dialogAction.action === "activate" ? "active" : "inactive"
-      const res = await api.put(`/manage/users/${dialogAction.id}/status`, { status: newStatus })
-
-     if (res.data?.success) {
-  setUser({ ...user, status: newStatus })
-  showSnackbar("User status updated successfully", "success")
-}
-    } catch (err: any) {
-      console.error("Error updating user status:", err)
-      setError(
-        err.response?.data?.message || "Failed to update user status. Please try again later."
-      )
-    } finally {
-      setProcessing(false)
-      setDialogOpen(false)
-      setDialogAction(null)
-    }
-  }
 
   // Handle admin role toggle
   const handleToggleAdmin = async () => {
@@ -230,6 +206,28 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
     } finally {
       setProcessing(false)
       setUpgradeDialogOpen(false)
+    }
+  }
+  const handleActivateDeactivateUser = async (status: string) => {
+    if (!user) return
+    try {
+      setProcessing(true)
+      const res = await api.put(`/manage/users/${user?.user_id}/status`, {
+        status: status,
+      })
+      if (res.data?.success) {
+        setUser({ ...user, status: "suspended" })
+        showSnackbar("Status change.", "success")
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to deactivate user. Please try again later."
+      )
+    } finally {
+      setProcessing(false)
+      setDialogOpen(false)
+      setDialogAction(null)
     }
   }
 
@@ -449,7 +447,10 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
               variant="contained"
               color="error"
               startIcon={<BlockIcon />}
-              onClick={() => openDialog(user.user_id, "deactivate")}
+              onClick={() => {
+                openDialog(user.user_id, "deactivate");
+                
+              }}
               sx={{ whiteSpace: "nowrap" }}
               >
               Deactivate User
@@ -459,7 +460,10 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
               variant="contained"
               color="success"
               startIcon={<ActivateIcon />}
-              onClick={() => openDialog(user.user_id, "activate")}
+              onClick={() => {
+                openDialog(user.user_id, "activate");
+                 
+              }}
               sx={{ whiteSpace: "nowrap" }}
               >
               Activate User
@@ -486,7 +490,7 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
       Cancel
     </Button>
     <Button
-      onClick={handleUpdateUserStatus}
+      onClick={() => handleActivateDeactivateUser(dialogAction?.action === "activate" ? "active" : "suspended")}
       variant="contained"
       color={dialogAction?.action === "activate" ? "success" : "error"}
       startIcon={processing && <CircularProgress size={20} />}
