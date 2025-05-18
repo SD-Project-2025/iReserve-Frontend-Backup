@@ -704,7 +704,9 @@ const ExportPdfPage: FC = () => {
                     {row.resolved}
                   </TableCell>
                   <TableCell align="right" sx={{ fontSize: "0.75rem" }}>
-                    {Math.round(row.avg_resolution_time / 36)}
+                    {row.avg_resolution_time === "N/A" || row.avg_resolution_time == null
+                      ? 0
+                      : Math.round(row.avg_resolution_time / 36)}
                   </TableCell>
                 </TableRow>
               ))}

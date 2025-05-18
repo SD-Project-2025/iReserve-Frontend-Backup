@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -63,18 +62,43 @@ const ManageFacilitiesPage = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
+  const [noAssignedFacilities, setNoAssignedFacilities] = useState(false)
 
   const fetchFacilities = async () => {
     try {
       setLoading(true)
       setError(null)
-
-      const response = await api.get("/facilities")
-      setFacilities(response.data.data)
-      setFilteredFacilities(response.data.data)
-    } catch (err) {
+      setNoAssignedFacilities(false)
+      
+      const userProfile = await api.get("/auth/me")
+      const staffId = userProfile.data.data.profile.staff_id
+      
+      if (staffId && userProfile.data.data.profile.is_admin === false) {
+        try {
+          const response = await api.get(`/facilities/staff/${staffId}`)
+          setFacilities(response.data)
+          setFilteredFacilities(response.data)
+        } catch (err: any) {
+          if (err.response?.status === 404) {
+            setNoAssignedFacilities(true)
+            setFacilities([])
+            setFilteredFacilities([])
+          } else {
+            throw err
+          }
+        }
+      } else {
+        const response = await api.get(`/facilities`)
+        setFacilities(response.data.data)
+        setFilteredFacilities(response.data.data)
+      }
+    } catch (err: any) {
       console.error("Error fetching facilities:", err)
-      setError("Failed to load facilities. Please try again later.")
+      setError(
+        err.response?.status === 404 
+          ? "No facilities found." 
+          : "Failed to load facilities. Please try again later."
+      )
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -86,10 +110,8 @@ const ManageFacilitiesPage = () => {
   }, [])
 
   useEffect(() => {
-    // Apply filters
     let result = facilities
 
-    // Filter by search term
     if (searchTerm) {
       result = result.filter(
         (facility) =>
@@ -98,12 +120,10 @@ const ManageFacilitiesPage = () => {
       )
     }
 
-    // Filter by type
     if (filterType !== "all") {
       result = result.filter((facility) => facility.type === filterType)
     }
 
-    // Filter by status
     if (filterStatus !== "all") {
       result = result.filter((facility) => facility.status === filterStatus)
     }
@@ -132,15 +152,12 @@ const ManageFacilitiesPage = () => {
     try {
       await api.put(`/facilities/${facilityId}`, { status })
       
-      // Set success message based on status
       let action = "opened"
       if (status === "maintenance") action = "placed under maintenance"
       if (status === "closed") action = "closed"
       
       setStatusMessage(`"${facilityName}" successfully ${action}`)
       setStatusUpdateSuccess(true)
-      
-      // Refresh facilities
       fetchFacilities()
     } catch (err) {
       console.error("Error updating facility status:", err)
@@ -154,14 +171,10 @@ const ManageFacilitiesPage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "open":
-        return "success"
-      case "closed":
-        return "error"
-      case "maintenance":
-        return "warning"
-      default:
-        return "default"
+      case "open": return "success"
+      case "closed": return "error"
+      case "maintenance": return "warning"
+      default: return "default"
     }
   }
 
@@ -178,9 +191,7 @@ const ManageFacilitiesPage = () => {
       headerName: "Facility Name", 
       width: 200,
       renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ fontWeight: 'medium' }}>
-          {params.value}
-        </Box>
+        <Box sx={{ fontWeight: 'medium' }}>{params.value}</Box>
       ) 
     },
     { field: "type", headerName: "Type", width: 150 },
@@ -191,9 +202,7 @@ const ManageFacilitiesPage = () => {
       width: 120, 
       type: "number",
       renderCell: (params: GridRenderCellParams) => (
-        <Box sx={{ textAlign: 'center', width: '100%' }}>
-          {params.value}
-        </Box>
+        <Box sx={{ textAlign: 'center', width: '100%' }}>{params.value}</Box>
       )
     },
     {
@@ -230,54 +239,30 @@ const ManageFacilitiesPage = () => {
       field: "actions",
       headerName: "Actions",
       width: 160,
-      // Remove the pinning properties as they're not supported in this version
       renderCell: (params: GridRenderCellParams) => {
-        // Get current status for conditional styling
         const status = params.row.status;
-        
         return (
-          <Box sx={{ 
-            display: "flex", 
-            justifyContent: "space-between",
-            width: "100%",
-            gap: 1 
-          }}>
-            {/* Edit Button */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", gap: 1 }}>
             <Tooltip title="Edit facility details">
               <Button
                 size="small"
                 variant="outlined"
                 color="primary"
-                sx={{ 
-                  minWidth: 'auto',
-                  px: 1.5
-                }}
+                sx={{ minWidth: 'auto', px: 1.5 }}
                 onClick={() => navigate(`/admin/facilities/${params.row.facility_id}/edit`)}
               >
                 <EditIcon fontSize="small" />
               </Button>
             </Tooltip>
 
-            {/* Status Actions Menu */}
-            <Box 
-              sx={{ 
-                display: "flex", 
-                bgcolor: "background.paper",
-                borderRadius: "4px",
-                border: "1px solid rgba(0, 0, 0, 0.12)",
-                overflow: "hidden"
-              }}
-            >
+            <Box sx={{ display: "flex", bgcolor: "background.paper", borderRadius: "4px", border: "1px solid rgba(0, 0, 0, 0.12)", overflow: "hidden" }}>
               {status !== "open" && (
                 <Tooltip title="Set as Open">
                   <IconButton 
                     size="small"
                     color="success"
                     onClick={() => handleUpdateStatus(params.row.facility_id, "open", params.row.name)}
-                    sx={{ 
-                      p: 0.5,
-                      borderRadius: 0
-                    }}
+                    sx={{ p: 0.5, borderRadius: 0 }}
                   >
                     <OpenIcon fontSize="small" />
                   </IconButton>
@@ -290,10 +275,7 @@ const ManageFacilitiesPage = () => {
                     size="small"
                     color="warning"
                     onClick={() => handleUpdateStatus(params.row.facility_id, "maintenance", params.row.name)}
-                    sx={{ 
-                      p: 0.5,
-                      borderRadius: 0
-                    }}
+                    sx={{ p: 0.5, borderRadius: 0 }}
                   >
                     <MaintenanceIcon fontSize="small" />
                   </IconButton>
@@ -306,10 +288,7 @@ const ManageFacilitiesPage = () => {
                     size="small"
                     color="error"
                     onClick={() => handleUpdateStatus(params.row.facility_id, "closed", params.row.name)}
-                    sx={{ 
-                      p: 0.5,
-                      borderRadius: 0
-                    }}
+                    sx={{ p: 0.5, borderRadius: 0 }}
                   >
                     <CloseIcon fontSize="small" />
                   </IconButton>
@@ -317,7 +296,7 @@ const ManageFacilitiesPage = () => {
               )}
             </Box>
           </Box>
-        );
+        )
       },
     },
   ]
@@ -347,181 +326,57 @@ const ManageFacilitiesPage = () => {
         </Alert>
       )}
 
-      {/* Status Cards Summary */}
-      <Box sx={{ mb: 4 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 3, 
-                height: '100%', 
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)',
-                border: '1px solid #a5d6a7',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <Box 
-                sx={{ 
-                  position: 'absolute', 
-                  top: 0, 
-                  left: 0, 
-                  width: '6px', 
-                  height: '100%', 
-                  bgcolor: '#4caf50' 
-                }} 
-              />
-              <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1, fontWeight: 500 }}>
-                OPEN FACILITIES
-              </Typography>
-              <Typography variant="h3" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 1 }}>
-                {openCount}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box 
-                  sx={{ 
-                    width: `${Math.round((openCount / facilities.length) * 100) || 0}%`, 
-                    height: '6px', 
-                    bgcolor: '#4caf50', 
-                    borderRadius: '3px',
-                    mr: 1,
-                    minWidth: '5px',
-                    maxWidth: '100%'
-                  }} 
-                />
-                <Typography variant="body2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
-                  {Math.round((openCount / facilities.length) * 100) || 0}%
-                </Typography>
-              </Box>
-              <OpenIcon 
-                sx={{ 
-                  position: 'absolute', 
-                  right: '12px', 
-                  bottom: '12px', 
-                  fontSize: '50px', 
-                  color: 'rgba(76, 175, 80, 0.15)' 
-                }} 
-              />
-            </Paper>
+      {noAssignedFacilities && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          You currently have no facilities assigned to you. Please contact your administrator.
+        </Alert>
+      )}
+
+      {/* Status Cards Summary - Only show if there are facilities */}
+      {facilities.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%', borderRadius: '8px', background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)', border: '1px solid #a5d6a7' }}>
+                <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1, fontWeight: 500 }}>OPEN FACILITIES</Typography>
+                <Typography variant="h3" sx={{ color: '#2e7d32', fontWeight: 'bold', mb: 1 }}>{openCount}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ width: `${Math.round((openCount / facilities.length) * 100) || 0}%`, height: '6px', bgcolor: '#4caf50', borderRadius: '3px', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+                    {Math.round((openCount / facilities.length) * 100) || 0}%
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} sm={4}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%', borderRadius: '8px', background: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)', border: '1px solid #ffe082' }}>
+                <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1, fontWeight: 500 }}>UNDER MAINTENANCE</Typography>
+                <Typography variant="h3" sx={{ color: '#ef6c00', fontWeight: 'bold', mb: 1 }}>{maintenanceCount}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ width: `${Math.round((maintenanceCount / facilities.length) * 100) || 0}%`, height: '6px', bgcolor: '#ff9800', borderRadius: '3px', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: '#ef6c00', fontWeight: 'bold' }}>
+                    {Math.round((maintenanceCount / facilities.length) * 100) || 0}%
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} sm={4}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%', borderRadius: '8px', background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)', border: '1px solid #ef9a9a' }}>
+                <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1, fontWeight: 500 }}>CLOSED FACILITIES</Typography>
+                <Typography variant="h3" sx={{ color: '#c62828', fontWeight: 'bold', mb: 1 }}>{closedCount}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ width: `${Math.round((closedCount / facilities.length) * 100) || 0}%`, height: '6px', bgcolor: '#f44336', borderRadius: '3px', mr: 1 }} />
+                  <Typography variant="body2" sx={{ color: '#c62828', fontWeight: 'bold' }}>
+                    {Math.round((closedCount / facilities.length) * 100) || 0}%
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
           </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 3, 
-                height: '100%', 
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%)',
-                border: '1px solid #ffe082',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <Box 
-                sx={{ 
-                  position: 'absolute', 
-                  top: 0, 
-                  left: 0, 
-                  width: '6px', 
-                  height: '100%', 
-                  bgcolor: '#ff9800' 
-                }} 
-              />
-              <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1, fontWeight: 500 }}>
-                UNDER MAINTENANCE
-              </Typography>
-              <Typography variant="h3" sx={{ color: '#ef6c00', fontWeight: 'bold', mb: 1 }}>
-                {maintenanceCount}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box 
-                  sx={{ 
-                    width: `${Math.round((maintenanceCount / facilities.length) * 100) || 0}%`, 
-                    height: '6px', 
-                    bgcolor: '#ff9800', 
-                    borderRadius: '3px',
-                    mr: 1,
-                    minWidth: '5px',
-                    maxWidth: '100%'
-                  }} 
-                />
-                <Typography variant="body2" sx={{ color: '#ef6c00', fontWeight: 'bold' }}>
-                  {Math.round((maintenanceCount / facilities.length) * 100) || 0}%
-                </Typography>
-              </Box>
-              <MaintenanceIcon 
-                sx={{ 
-                  position: 'absolute', 
-                  right: '12px', 
-                  bottom: '12px', 
-                  fontSize: '50px', 
-                  color: 'rgba(255, 152, 0, 0.15)' 
-                }} 
-              />
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} sm={4}>
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 3, 
-                height: '100%', 
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
-                border: '1px solid #ef9a9a',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <Box 
-                sx={{ 
-                  position: 'absolute', 
-                  top: 0, 
-                  left: 0, 
-                  width: '6px', 
-                  height: '100%', 
-                  bgcolor: '#f44336' 
-                }} 
-              />
-              <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1, fontWeight: 500 }}>
-                CLOSED FACILITIES
-              </Typography>
-              <Typography variant="h3" sx={{ color: '#c62828', fontWeight: 'bold', mb: 1 }}>
-                {closedCount}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box 
-                  sx={{ 
-                    width: `${Math.round((closedCount / facilities.length) * 100) || 0}%`, 
-                    height: '6px', 
-                    bgcolor: '#f44336', 
-                    borderRadius: '3px',
-                    mr: 1,
-                    minWidth: '5px',
-                    maxWidth: '100%'
-                  }} 
-                />
-                <Typography variant="body2" sx={{ color: '#c62828', fontWeight: 'bold' }}>
-                  {Math.round((closedCount / facilities.length) * 100) || 0}%
-                </Typography>
-              </Box>
-              <CloseIcon 
-                sx={{ 
-                  position: 'absolute', 
-                  right: '12px', 
-                  bottom: '12px', 
-                  fontSize: '50px', 
-                  color: 'rgba(244, 67, 54, 0.15)' 
-                }} 
-              />
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
+        </Box>
+      )}
 
       <Card sx={{ mb: 4 }}>
         <CardContent>
@@ -562,9 +417,7 @@ const ManageFacilitiesPage = () => {
                 <Select labelId="type-filter-label" value={filterType} label="Type" onChange={handleTypeChange}>
                   <MenuItem value="all">All Types</MenuItem>
                   {facilityTypes.map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {type}
-                    </MenuItem>
+                    <MenuItem key={type} value={type}>{type}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -594,24 +447,26 @@ const ManageFacilitiesPage = () => {
             </Grid>
           </Grid>
 
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" color="textSecondary">
-              Showing {filteredFacilities.length} of {facilities.length} facilities
-            </Typography>
-            
-            {searchTerm || filterType !== "all" || filterStatus !== "all" ? (
-              <Button 
-                size="small" 
-                onClick={() => {
-                  setSearchTerm("");
-                  setFilterType("all");
-                  setFilterStatus("all");
-                }}
-              >
-                Clear Filters
-              </Button>
-            ) : null}
-          </Box>
+          {facilities.length > 0 && (
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="textSecondary">
+                Showing {filteredFacilities.length} of {facilities.length} facilities
+              </Typography>
+              
+              {(searchTerm || filterType !== "all" || filterStatus !== "all") && (
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    setSearchTerm("")
+                    setFilterType("all")
+                    setFilterStatus("all")
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -619,9 +474,27 @@ const ManageFacilitiesPage = () => {
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
             <CircularProgress />
-            <Typography variant="body1" sx={{ ml: 2 }}>
-              Loading facilities...
+            <Typography variant="body1" sx={{ ml: 2 }}>Loading facilities...</Typography>
+          </Box>
+        ) : noAssignedFacilities ? (
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", flexDirection: 'column' }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>No Facilities Assigned</Typography>
+            <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+              You currently don't have any facilities assigned to your account.
             </Typography>
+            <Button variant="outlined" onClick={handleRefresh}>
+              <RefreshIcon sx={{ mr: 1 }} /> Refresh
+            </Button>
+          </Box>
+        ) : facilities.length === 0 ? (
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", flexDirection: 'column' }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>No Facilities Found</Typography>
+            <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+              There are currently no facilities available in the system.
+            </Typography>
+            <Button variant="contained" onClick={() => navigate("/admin/facilities/create")}>
+              <AddIcon sx={{ mr: 1 }} /> Create New Facility
+            </Button>
           </Box>
         ) : (
           <DataGrid
@@ -629,23 +502,15 @@ const ManageFacilitiesPage = () => {
             columns={columns}
             getRowId={(row) => row.facility_id}
             initialState={{
-              pagination: {
-                paginationModel: { page: 0, pageSize: 10 },
-              },
-              sorting: {
-                sortModel: [{ field: 'name', sort: 'asc' }],
-              },
+              pagination: { paginationModel: { page: 0, pageSize: 10 } },
+              sorting: { sortModel: [{ field: 'name', sort: 'asc' }] },
             }}
             pageSizeOptions={[5, 10, 25, 50]}
             checkboxSelection
             disableRowSelectionOnClick
             sx={{
-              '& .MuiDataGrid-row:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              },
-              '& .MuiDataGrid-cell:focus': {
-                outline: 'none',
-              },
+              '& .MuiDataGrid-row:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+              '& .MuiDataGrid-cell:focus': { outline: 'none' },
             }}
           />
         )}
@@ -657,6 +522,12 @@ const ManageFacilitiesPage = () => {
         onClose={handleCloseSnackbar}
         message={statusMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      />
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        message={error}
       />
     </section>
   )

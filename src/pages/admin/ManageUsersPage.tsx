@@ -1,15 +1,10 @@
 "use client"
-
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import  { useState, useEffect } from "react"
 import {
   Typography,
-  Grid,
+  
   Card,
   CardContent,
-  Button,
   Box,
   TextField,
   InputAdornment,
@@ -18,170 +13,198 @@ import {
   Select,
   MenuItem,
   Chip,
-  Alert,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
+  Button,
+  Tabs,
+  Tab,
 } from "@mui/material"
-import { DataGrid, type GridColDef, type GridRenderCellParams } from "@mui/x-data-grid"
+import { DataGrid, type GridColDef } from "@mui/x-data-grid"
+import { Skeleton, CircularProgress } from "@mui/material" // Added for skeletons and progress indicator
+import { toast, ToastContainer } from "react-toastify" // Toast notifications
+import "react-toastify/dist/ReactToastify.css"
+import { useNavigate } from "react-router-dom"
 import {
   Search as SearchIcon,
-  PersonAdd as PersonAddIcon,
-  Block as BlockIcon,
-  CheckCircle as ActivateIcon,
+ 
+   
   Visibility as ViewIcon,
+  PersonOutline as PersonIcon,
+  PeopleAlt as PeopleIcon,
+  Work as WorkIcon,
 } from "@mui/icons-material"
+import { api } from "@/services/api"
 
 interface User {
   user_id: number
   name: string
   email: string
-  type: string
+  user_type: string
   status: string
   created_at: string
+  is_admin?: boolean
+}
+interface Staff {
+  staff_id: number
+  user_id: number
+  employee_id: string
+  position: string
+  department: string
+  is_admin: boolean
+}
+interface Resident {
+  resident_id: number
+  user_id: number
+  encrypted_address: string
+  membership_type: "basic" | "premium" | "vip"
+  membership_start_date: string
+  membership_end_date: string
 }
 
 const ManageUsersPage = () => {
-  const navigate = useNavigate()
+  const [tabValue, setTabValue] = useState(0)
   const [users, setUsers] = useState<User[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [staff, setStaff] = useState<Staff[]>([])
+  const [residents, setResidents] = useState<Resident[]>([])
+  const [filteredData, setFilteredData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState<string>("all")
-  const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("userSearch") || "")
+  const [filterStatus, setFilterStatus] = useState(() => localStorage.getItem("userStatus") || "all")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false)
+
   const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
+  const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(
+    null
+  )
   const [processing, setProcessing] = useState(false)
+  const navigate = useNavigate()
+  const [quickViewOpen, setQuickViewOpen] = useState(false)
+  const [quickViewUser] = useState<User | null>(null)
+
+  // Save filters to localStorage
+  useEffect(() => {
+    localStorage.setItem("userSearch", searchTerm)
+  }, [searchTerm])
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    localStorage.setItem("userStatus", filterStatus)
+  }, [filterStatus])
+
+  // Fetch all data
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        setError(null)
-
-        // In a real app, you would fetch from an API endpoint
-        // For now, we'll use mock data
-        const mockUsers: User[] = [
-          {
-            user_id: 1,
-            name: "John Doe",
-            email: "john.doe@example.com",
-            type: "resident",
-            status: "active",
-            created_at: "2023-01-15T00:00:00.000Z",
-          },
-          {
-            user_id: 2,
-            name: "Jane Smith",
-            email: "jane.smith@example.com",
-            type: "staff",
-            status: "active",
-            created_at: "2023-02-20T00:00:00.000Z",
-          },
-          {
-            user_id: 3,
-            name: "Bob Johnson",
-            email: "bob.johnson@example.com",
-            type: "resident",
-            status: "inactive",
-            created_at: "2023-03-10T00:00:00.000Z",
-          },
-          {
-            user_id: 4,
-            name: "Alice Williams",
-            email: "alice.williams@example.com",
-            type: "staff",
-            status: "active",
-            created_at: "2023-04-05T00:00:00.000Z",
-          },
-          {
-            user_id: 5,
-            name: "Charlie Brown",
-            email: "charlie.brown@example.com",
-            type: "resident",
-            status: "active",
-            created_at: "2023-05-12T00:00:00.000Z",
-          },
-        ]
-
-        setUsers(mockUsers)
-        setFilteredUsers(mockUsers)
-      } catch (err) {
-        console.error("Error fetching users:", err)
-        setError("Failed to load users. Please try again later.")
+        const [userRes, staffRes, residentRes] = await Promise.all([
+          api.get("/manage/users"),
+          api.get("/manage/users/staff"),
+          api.get("/manage/users/residents"),
+        ])
+        if (userRes.data?.data) setUsers(userRes.data.data)
+        if (staffRes.data?.data) setStaff(staffRes.data.data)
+        if (residentRes.data?.data) setResidents(residentRes.data.data)
+         
+      } catch (err: any) {
+        console.error("Error fetching data:", err)
+        toast.error("Failed to load user data. Please try again later.")
       } finally {
         setLoading(false)
       }
     }
-
-    fetchUsers()
+    fetchData()
   }, [])
 
+  // Update filtered data based on current tab and filters
   useEffect(() => {
-    // Apply filters
-    let result = users
+    let result: any[] = []
+    switch (tabValue) {
+      case 0:
+        result = users
+        break
+      case 1:
+        result = staff.map((s) => ({
+          ...s,
+          name: users.find((u) => u.user_id === s.user_id)?.name || "Unknown",
+          email: users.find((u) => u.user_id === s.user_id)?.email || "",
+          status: users.find((u) => u.user_id === s.user_id)?.status || "inactive",
+        }))
+        break
+      case 2:
+        result = residents.map((r) => ({
+          ...r,
+          name: users.find((u) => u.user_id === r.user_id)?.name || "Unknown",
+          email: users.find((u) => u.user_id === r.user_id)?.email || "",
+          status: users.find((u) => u.user_id === r.user_id)?.status || "inactive",
+        }))
+        break
+    }
 
-    // Filter by search term
     if (searchTerm) {
       result = result.filter(
-        (user) =>
-          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+        (item) =>
+          (item.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (item.email?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (item.user_id?.toString() || "").includes(searchTerm.toLowerCase())
       )
     }
 
-    // Filter by type
-    if (filterType !== "all") {
-      result = result.filter((user) => user.type === filterType)
-    }
-
-    // Filter by status
     if (filterStatus !== "all") {
-      result = result.filter((user) => user.status === filterStatus)
+      result = result.filter((item) => item.status === filterStatus)
     }
 
-    setFilteredUsers(result)
-  }, [searchTerm, filterType, filterStatus, users])
+    setFilteredData(result)
+  }, [tabValue, users, staff, residents, searchTerm, filterStatus])
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value)
-  }
-
-  const handleTypeChange = (event: any) => {
-    setFilterType(event.target.value)
-  }
-
-  const handleStatusChange = (event: any) => {
-    setFilterStatus(event.target.value)
-  }
-
+  // Handlers for actions
   const handleUpdateUserStatus = async (userId: number, status: string) => {
     try {
       setProcessing(true)
-      // In a real app, you would call an API endpoint
-      // await api.put(`/users/${userId}/status`, { status })
-
-      // For now, we'll update the mock data
-      setUsers((prev) => prev.map((user) => (user.user_id === userId ? { ...user, status } : user)))
-      setDialogOpen(false)
-      setDialogAction(null)
-    } catch (err) {
-      console.error("Error updating user status:", err)
-      setError("Failed to update user status. Please try again later.")
+      const res = await api.put(`/manage/users/${userId}/status`, { status })
+      if (res.data?.success) {
+        setUsers((prev) =>
+          prev.map((user) => (user.user_id === userId ? { ...user, status } : user))
+        )
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update user status.")
     } finally {
       setProcessing(false)
+      setDialogOpen(false)
+      setDialogAction(null)
     }
   }
 
-  const openDialog = (id: number, action: string) => {
-    setDialogAction({ id, action })
-    setDialogOpen(true)
+  const handleToggleAdmin = async () => {
+    if (!dialogAdminAction) return
+    try {
+      setProcessing(true)
+      const res = await api.put(`/manage/users/${dialogAdminAction.id}/admin`, {
+        is_admin: dialogAdminAction.is_admin,
+      })
+      if (res.data?.success) {
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.user_id === dialogAdminAction.id
+              ? { ...user, is_admin: dialogAdminAction.is_admin }
+              : user
+          )
+        )
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update admin privileges.")
+    } finally {
+      setProcessing(false)
+      setAdminDialogOpen(false)
+      setDialogAdminAction(null)
+    }
   }
 
+
+  // Status color helper
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "active":
@@ -193,33 +216,17 @@ const ManageUsersPage = () => {
     }
   }
 
-  const getTypeLabel = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "resident":
-        return "Resident"
-      case "staff":
-        return "Staff"
-      default:
-        return type
-    }
-  }
-
-  const columns: GridColDef[] = [
+  // Columns for each tab
+  const userColumns: GridColDef[] = [
     { field: "user_id", headerName: "ID", width: 70 },
     { field: "name", headerName: "Name", width: 200 },
     { field: "email", headerName: "Email", width: 250 },
     {
-      field: "type",
-      headerName: "Type",
-      width: 120,
-      valueGetter: (params) => getTypeLabel(params.row.type),
-    },
-    {
       field: "status",
       headerName: "Status",
       width: 120,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip label={params.value} color={getStatusColor(params.value as string) as any} size="small" />
+      renderCell: (params) => (
+        <Chip label={params.value} color={getStatusColor(params.value)} size="small" />
       ),
     },
     {
@@ -231,146 +238,267 @@ const ManageUsersPage = () => {
     {
       field: "actions",
       headerName: "Actions",
-      width: 250,
-      renderCell: (params: GridRenderCellParams) => (
+      width: 280,
+      renderCell: (params) => {
+        
+        return (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              size="small"
+              startIcon={<ViewIcon />}
+              onClick={() => {
+                navigate(`/admin/users/${params.row.user_id}`,{state:{userType :params.row.user_type,userData:params.row}})
+              }}
+              sx={{ mb: 2 }}
+            >
+              View
+            </Button>
+            
+          </Box>
+        )
+      },
+    },
+  ]
+
+  const staffColumns: GridColDef[] = [
+    { field: "staff_id", headerName: "Staff ID", width: 100 },
+    { field: "name", headerName: "Name", width: 200 },
+    { field: "email", headerName: "Email", width: 250 },
+    { field: "position", headerName: "Position", width: 200 },
+    { field: "department", headerName: "Department", width: 200 },
+    {
+      field: "is_admin",
+      headerName: "Admin",
+      width: 100,
+      valueGetter: (params) => (params.row.is_admin ? "Yes" : "No"),
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 280,
+      renderCell: (params) => (
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button size="small" startIcon={<ViewIcon />} onClick={() => navigate(`/admin/users/${params.row.user_id}`)}>
+          <Button
+            size="small"
+            startIcon={<ViewIcon />}
+            onClick={() => {
+              navigate(`/admin/users/${params.row.user_id}`,{state:{userType :"staff",userData:params.row}})
+            }}
+          >
             View
           </Button>
-          {params.row.status === "active" ? (
-            <Button
-              size="small"
-              color="error"
-              startIcon={<BlockIcon />}
-              onClick={() => openDialog(params.row.user_id, "deactivate")}
-            >
-              Deactivate
-            </Button>
-          ) : (
-            <Button
-              size="small"
-              color="success"
-              startIcon={<ActivateIcon />}
-              onClick={() => openDialog(params.row.user_id, "activate")}
-            >
-              Activate
-            </Button>
-          )}
+          
+        </Box>
+      ),
+    },
+  ]
+
+  const residentColumns: GridColDef[] = [
+    { field: "resident_id", headerName: "Resident ID", width: 100 },
+    { field: "name", headerName: "Name", width: 200 },
+    { field: "email", headerName: "Email", width: 250 },
+    {
+      field: "membership_type",
+      headerName: "Membership",
+      width: 150,
+      valueGetter: (params) => params.row.membership_type,
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 280,
+      renderCell: (params) => (
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            size="small"
+            startIcon={<ViewIcon />}
+            onClick={() => {
+              navigate(`/admin/users/${params.row.user_id}`,{state:{userType :"resident",userData:params.row}})
+              
+            }}
+            sx={{ mb: 2 }}
+          >
+            View
+          </Button>
+         
         </Box>
       ),
     },
   ]
 
   return (
-    <section>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Manage Users
-        </Typography>
-        <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => navigate("/admin/users/create")}>
-          Add User
-        </Button>
-      </Box>
+    <>
+      <section style={{ padding: "2rem" }}>
+        
+        {/* Navigation Tabs */}
+        <Card sx={{ mb: 3, boxShadow: 3 }}>
+          <Tabs
+            value={tabValue}
+            onChange={(_, newValue) => setTabValue(newValue)}
+            centered
+            indicatorColor="primary"
+            textColor="primary"
+          >
+            <Tab icon={<PersonIcon />} label="All Users" />
+            <Tab icon={<WorkIcon />} label="Staff Members" />
+            <Tab icon={<PeopleIcon />} label="Residents" />
+          </Tabs>
+        </Card>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Search users"
-                variant="outlined"
-                value={searchTerm}
-                onChange={handleSearchChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel id="type-filter-label">Type</InputLabel>
-                <Select labelId="type-filter-label" value={filterType} label="Type" onChange={handleTypeChange}>
-                  <MenuItem value="all">All Types</MenuItem>
-                  <MenuItem value="resident">Resident</MenuItem>
-                  <MenuItem value="staff">Staff</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select labelId="status-filter-label" value={filterStatus} label="Status" onChange={handleStatusChange}>
-                  <MenuItem value="all">All Statuses</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <div style={{ height: 600, width: "100%" }}>
+        {/* Filters */}
+        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+          <TextField
+            size="small"
+            label="Search"
+            variant="outlined"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ flex: 1, minWidth: "200px" }}
+          />
+          <FormControl size="small" sx={{ minWidth: "150px" }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={filterStatus}
+              label="Status"
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        {/* Data Table */}
+        <Card sx={{ height: 600, boxShadow: 2 }}>
+          <CardContent>
+            {loading ? (
+              <>
+                {[...Array(10)].map((_, index) => (
+                  <Box key={index} sx={{ display: "flex", gap: 2, mb: 2 }}>
+                    <Skeleton variant="text" width="10%" />
+                    <Skeleton variant="text" width="25%" />
+                    <Skeleton variant="text" width="30%" />
+                    <Skeleton variant="text" width="15%" />
+                    <Skeleton variant="text" width="10%" />
+                    <Skeleton variant="text" width="100px" />
+                  </Box>
+                ))}
+              </>
+            ) : (
               <DataGrid
-                rows={filteredUsers}
-                columns={columns}
-                getRowId={(row) => row.user_id}
+                rows={filteredData}
+                columns={
+                  tabValue === 0 ? userColumns : tabValue === 1 ? staffColumns : residentColumns
+                }
+                getRowId={(row) =>
+                  `${tabValue}-${row.user_id || row.staff_id || row.resident_id}`
+                }
                 initialState={{
                   pagination: {
                     paginationModel: { page: 0, pageSize: 10 },
                   },
                 }}
                 pageSizeOptions={[10, 25, 50]}
-                checkboxSelection
+                checkboxSelection={false}
                 disableRowSelectionOnClick
               />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Status Update Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>{dialogAction?.action === "activate" ? "Activate User" : "Deactivate User"}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {dialogAction?.action === "activate"
-              ? "Are you sure you want to activate this user?"
-              : "Are you sure you want to deactivate this user?"}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={processing}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() =>
-              dialogAction &&
-              handleUpdateUserStatus(dialogAction.id, dialogAction.action === "activate" ? "active" : "inactive")
-            }
-            color={dialogAction?.action === "activate" ? "success" : "error"}
-            disabled={processing}
-          >
-            {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
-            {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </section>
+        {/* Action Dialogs */}
+        {/* Status Update Dialog */}
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+          <DialogTitle>
+            {dialogAction?.action === "activate" ? "Activate User" : "Deactivate User"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {dialogAction?.action === "activate"
+                ? "Are you sure you want to activate this user? Activating a user will grant them access to the platform and its features."
+                : "Are you sure you want to deactivate this user? Deactivating a user will restrict their access to the platform and its features."}
+            </DialogContentText>
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              Please confirm your action. This change will take effect immediately and the user will be
+              notified of the status update.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)} disabled={processing}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                dialogAction &&
+                handleUpdateUserStatus(
+                  dialogAction.id,
+                  dialogAction.action === "activate" ? "active" : "inactive"
+                )
+              }
+              color={dialogAction?.action === "activate" ? "success" : "error"}
+              disabled={processing}
+            >
+              {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
+              {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Admin Toggle Dialog */}
+        <Dialog open={adminDialogOpen} onClose={() => setAdminDialogOpen(false)}>
+          <DialogTitle>
+            {dialogAdminAction?.is_admin ? "Grant Admin Privileges" : "Revoke Admin Privileges"}
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {dialogAdminAction?.is_admin
+                ? "Are you sure you want to make this user an admin?"
+                : "Are you sure you want to revoke admin access?"}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAdminDialogOpen(false)} disabled={processing}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleToggleAdmin}
+              color={dialogAdminAction?.is_admin ? "success" : "error"}
+              disabled={processing}
+            >
+              Confirm
+              {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+
+        <Dialog open={quickViewOpen} onClose={() => setQuickViewOpen(false)}>
+          <DialogTitle>{quickViewUser?.name}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>Email: {quickViewUser?.email}</DialogContentText>
+            <DialogContentText>
+              Type: {quickViewUser?.user_type === "staff" ? "Staff" : "Resident"}
+            </DialogContentText>
+            <DialogContentText>Status: {quickViewUser?.status}</DialogContentText>
+            <DialogContentText>
+              Joined:{" "}
+              {new Date(quickViewUser?.created_at || "").toLocaleDateString()}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setQuickViewOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      </section>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} theme="colored" />
+    </>
   )
 }
 

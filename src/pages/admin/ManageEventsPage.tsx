@@ -51,8 +51,11 @@ interface Event {
   event_id: number
   title: string
   description: string
-  facility: {
+  facility_id: number
+  Facility: {
     name: string
+    type: string
+    location: string
     facility_id: number
   }
   start_date: string
@@ -60,9 +63,17 @@ interface Event {
   start_time: string
   end_time: string
   status: string
-  max_attendees: number
-  current_attendees: number
-  created_at: string
+  capacity: number
+  current_attendees?: number // Make this optional since it's not in your API response
+  image_url: string
+  is_public: boolean
+  registration_deadline: string
+  fee: string
+  organizer: {
+    staff_id: number
+    employee_id: string
+    position: string
+  }
 }
 
 const ManageEventsPage = () => {
@@ -70,7 +81,6 @@ const ManageEventsPage = () => {
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterFacility, setFilterFacility] = useState<string>("all")
@@ -81,18 +91,58 @@ const ManageEventsPage = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [actionSuccess, setActionSuccess] = useState(false)
   const [actionMessage, setActionMessage] = useState("")
+  const [success, setSuccess] = useState<string | null>(null)
+  const [noAssignedFacilities, setNoAssignedFacilities] = useState(false)
 
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      setError(null)
+      setNoAssignedFacilities(false)
 
-      const response = await api.get("/events")
-      setEvents(response.data.data)
-      setFilteredEvents(response.data.data)
-    } catch (err) {
+      const userProfile = await api.get("/auth/me")
+      const staffId = userProfile.data.data.profile.staff_id
+
+      if (staffId && userProfile.data.data.profile.is_admin === false) {
+        try {
+          const response = await api.get(`/events/staff/${staffId}/events`)
+          
+          if (response.data.message === 'No facilities assigned to this staff member.') {
+            setActionMessage("No facilities are assigned to you. Please contact administrator.")
+            setActionSuccess(true)
+            setEvents([])
+            setFilteredEvents([])
+            return
+          }
+
+          const eventsWithDefaults = response.data.data.map((event: Event) => ({
+            ...event,
+            current_attendees: event.current_attendees || 0
+          }))
+          setEvents(eventsWithDefaults)
+          setFilteredEvents(eventsWithDefaults)
+        } catch (error: any) {
+          if (error.response?.data?.message === 'No facilities assigned to this staff member.') {
+            setActionMessage("No facilities are assigned to you. Please contact administrator.")
+            setActionSuccess(true)
+            setEvents([])
+            setFilteredEvents([])
+          } else {
+            console.error("Error fetching staff events:", error)
+            setSuccess("Failed to load your events. Please try again later.")
+            setNoAssignedFacilities(true)
+          }
+        }
+      } else {
+        const response = await api.get("/events")
+        const eventsWithDefaults = response.data.data.map((event: Event) => ({
+          ...event,
+          current_attendees: event.current_attendees || 0
+        }))
+        setEvents(eventsWithDefaults)
+        setFilteredEvents(eventsWithDefaults)
+      }
+    } catch (err: any) {
       console.error("Error fetching events:", err)
-      setError("Failed to load events. Please try again later.")
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -104,27 +154,25 @@ const ManageEventsPage = () => {
   }, [])
 
   useEffect(() => {
-    // Apply filters
     let result = events
 
-    // Filter by search term
     if (searchTerm) {
       result = result.filter(
         (event) =>
           event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.facility?.name.toLowerCase().includes(searchTerm.toLowerCase()),
+          (event.Facility?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.Facility?.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.Facility?.location.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
 
-    // Filter by status
     if (filterStatus !== "all") {
       result = result.filter((event) => event.status === filterStatus)
     }
 
-    // Filter by facility
     if (filterFacility !== "all") {
-      result = result.filter((event) => event.facility?.facility_id === Number(filterFacility))
+      result = result.filter((event) => event.Facility?.facility_id === Number(filterFacility))
     }
 
     setFilteredEvents(result)
@@ -164,7 +212,6 @@ const ManageEventsPage = () => {
       fetchEvents()
     } catch (err) {
       console.error("Error deleting event:", err)
-      setError("Failed to delete event. Please try again later.")
     } finally {
       setProcessing(false)
     }
@@ -211,7 +258,7 @@ const ManageEventsPage = () => {
   }
 
   // Get unique facilities for filter
-  const facilities = [...new Set(events.map((event) => event.facility))]
+  const facilities = [...new Set(events.map((event) => event.Facility))]
     .filter((facility): facility is NonNullable<typeof facility> => facility !== undefined)
     .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -236,7 +283,7 @@ const ManageEventsPage = () => {
       field: "facility",
       headerName: "Facility",
       width: 150,
-      valueGetter: (params) => params.row.facility?.name || "Unknown",
+      valueGetter: (params) => params.row.Facility?.name || "Unknown",
     },
     {
       field: "date",
@@ -259,9 +306,9 @@ const ManageEventsPage = () => {
       headerName: "Attendees",
       width: 130,
       renderCell: (params: GridRenderCellParams) => {
-        const current = params.row.current_attendees;
-        const max = params.row.max_attendees;
-        const percentage = Math.round((current / max) * 100);
+        const current = params.row.current_attendees || 0;
+        const max = params.row.capacity || 0;
+        const percentage = max > 0 ? Math.round((current / max) * 100) : 0;
         
         return (
           <Box sx={{ width: '100%' }}>
@@ -356,11 +403,15 @@ const ManageEventsPage = () => {
         </Tooltip>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
+      
+
+      {noAssignedFacilities && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          You currently have no facilities assigned to you. Please contact your administrator.
         </Alert>
       )}
+
+       
 
       {/* Status Cards Summary */}
       <Box sx={{ mb: 4 }}>
@@ -718,7 +769,7 @@ const ManageEventsPage = () => {
                     <Grid container spacing={1} sx={{ mb: 1 }}>
                       <Grid item xs={6}>
                         <Typography variant="body2" color="text.secondary">Facility</Typography>
-                        <Typography variant="body1">{event.facility?.name || "Unknown"}</Typography>
+                        <Typography variant="body1">{event.Facility?.name || "Unknown"}</Typography>
                       </Grid>
                       
                       <Grid item xs={6}>
@@ -738,7 +789,7 @@ const ManageEventsPage = () => {
                       
                       <Grid item xs={6}>
                         <Typography variant="body2" color="text.secondary">Attendees</Typography>
-                        <Typography variant="body1">{event.current_attendees}/{event.max_attendees}</Typography>
+                        <Typography variant="body1">{(event.current_attendees || 0)}/{event.capacity}</Typography>
                       </Grid>
                     </Grid>
                     
@@ -826,8 +877,19 @@ const ManageEventsPage = () => {
         message={actionMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       />
+
+      <Snackbar
+        open={!!success}
+        autoHideDuration={5000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
     </section>
   )
 }
 
-export default ManageEventsPage
+export default ManageEventsPage 

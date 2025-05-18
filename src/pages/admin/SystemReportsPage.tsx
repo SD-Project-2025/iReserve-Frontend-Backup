@@ -838,7 +838,7 @@ const fetchMaintenancePriorities = async () => {
                   </Avatar>
                 </Box>
                 <Typography variant="h3" sx={{ mb: 1, fontWeight: "bold" }}>
-                  ${Number.parseInt(kpis.totalRevenue ?? "0").toLocaleString()}
+                  R{Number.parseInt(kpis.totalRevenue ?? "0").toLocaleString()}
                 </Typography>
                 <Typography variant="body2">
                   Based on {Number.parseFloat(kpis.totalHours).toLocaleString()} facility hours
