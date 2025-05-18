@@ -9,7 +9,7 @@ import {
   Box,
  
   Chip,
-  Alert,
+ 
   Grid,
   CircularProgress,
   Divider,
@@ -19,9 +19,12 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  TextField,
 } from "@mui/material"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
+import Snackbar from "@mui/material/Snackbar"
+import MuiAlert, { AlertProps } from "@mui/material/Alert"
 import {
   ArrowBack as BackIcon,
   Block as BlockIcon,
@@ -78,10 +81,22 @@ const ViewUser: React.FC = () => {
   const [adminDialogOpen, setAdminDialogOpen] = useState(false)
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
   const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false)
-
+  const [employeeId, setEmployeeId] = useState("")
   const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
   const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [snackbar, setSnackbar] = useState<{
+  open: boolean
+  message: string
+  severity: "success" | "error" | "info" | "warning"
+}>({
+  open: false,
+  message: "",
+  severity: "success",
+})
+  const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />
+})
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -127,6 +142,9 @@ useEffect(() => {
       setResident(null)
   }
 }, [userType, userData])
+const showSnackbar = (message: string, severity: "success" | "error" | "info" | "warning") => {
+  setSnackbar({ open: true, message, severity })
+}
 
   // Handle user status update
   const handleUpdateUserStatus = async () => {
@@ -136,10 +154,10 @@ useEffect(() => {
       const newStatus = dialogAction.action === "activate" ? "active" : "inactive"
       const res = await api.put(`/manage/users/${dialogAction.id}/status`, { status: newStatus })
 
-      if (res.data?.success) {
-        setUser({ ...user, status: newStatus })
-        setError(null)
-      }
+     if (res.data?.success) {
+  setUser({ ...user, status: newStatus })
+  showSnackbar("User status updated successfully", "success")
+}
     } catch (err: any) {
       console.error("Error updating user status:", err)
       setError(
@@ -162,9 +180,9 @@ useEffect(() => {
       })
 
       if (res.data?.success) {
-        setUser({ ...user, is_admin: dialogAdminAction.is_admin })
-        setError(null)
-      }
+  setUser({ ...user, is_admin: dialogAdminAction.is_admin })
+  showSnackbar("Admin privileges updated successfully", "success")
+}
     } catch (err: any) {
       setError(
         err.response?.data?.message || "Failed to update admin privileges. Please try again later."
@@ -183,7 +201,7 @@ useEffect(() => {
       setProcessing(true)
       // Get the employee_id value from the input field
       const code = "EMP"
-      const employeeIdInput = document.querySelector<HTMLInputElement>('input[name="employee_id"]')
+      const employeeIdInput = document.getElementById("employee-id") as HTMLInputElement
       const employee_id = employeeIdInput ? code + employeeIdInput.value : ""
 
       if (!employee_id) {
@@ -223,9 +241,9 @@ useEffect(() => {
       const res = await api.post(`/manage/users/${user?.user_id}/downgrade`)
 
       if (res.data?.success) {
-        setUser({ ...user, type: "resident", is_admin: false })
-        setError(null)
-      }
+  setUser({ ...user, type: "resident", is_admin: false })
+  showSnackbar("User successfully downgraded to resident.", "success")
+}
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
@@ -293,6 +311,20 @@ useEffect(() => {
   }
   return (
     <section>
+      <Snackbar
+  open={snackbar.open}
+  autoHideDuration={5000}
+  onClose={() => setSnackbar({ ...snackbar, open: false })}
+  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+>
+  <Alert
+    onClose={() => setSnackbar({ ...snackbar, open: false })}
+    severity={snackbar.severity}
+    sx={{ width: "100%" }}
+  >
+    {snackbar.message}
+  </Alert>
+</Snackbar>
       {successMessage && (
         <Alert severity="success" sx={{ my: 3 }}>
           {successMessage}
@@ -500,6 +532,19 @@ useEffect(() => {
     <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 1 }}>
       Please enter the employee ID. A prefix like EMP will be added automatically.
     </Typography>
+      <TextField
+      autoFocus
+      margin="dense"
+      label="Employee ID"
+      id="employee-id"
+      type="text"
+      fullWidth
+      variant="outlined"
+      value={employeeId}
+      onChange={(e) => setEmployeeId(e.target.value)}
+      helperText="Example: Entering '123' will result in 'EMP123'"
+      disabled={processing}
+    />
    
     <DialogContentText color="text.secondary" sx={{ mt: 2 }}>
       Are you sure you want to upgrade this user to a staff member?
