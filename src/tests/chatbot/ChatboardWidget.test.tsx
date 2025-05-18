@@ -67,20 +67,7 @@ describe('ChatbotWidget', () => {
     expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
   });
 
-  // test('shows tooltip on hover and closes on mouse leave', () => {
-  //   render(<ChatbotWidget />);
-  //   const script = document.querySelector('script[src*="df-messenger.js"]');
-  //   script?.dispatchEvent(new Event('load'));
-  //   vi.advanceTimersByTime(1000); // Allow hover setup
-
-  //   const chatButton = document.querySelector('df-messenger-chat-bubble button');
-  //   chatButton?.dispatchEvent(new MouseEvent('mouseenter'));
-  //   expect(document.querySelector('.df-messenger-tooltip')).toBeInTheDocument();
-
-  //   chatButton?.dispatchEvent(new MouseEvent('mouseleave'));
-  //   vi.advanceTimersByTime(1000);
-  //   expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
-  // });
+ 
 
   test('cleans up tooltip on unmount', () => {
     const { unmount } = render(<ChatbotWidget />);
