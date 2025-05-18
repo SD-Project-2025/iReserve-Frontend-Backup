@@ -17,6 +17,23 @@ jest.mock("@/contexts/AuthContext", () => ({
     logout: jest.fn(),
   }),
 }))
+jest.mock("@/contexts/ThemeContext", () => ({
+  useTheme: () => ({
+    mode: "light",
+    toggleTheme: jest.fn(),
+  }),
+}))
+jest.mock("@/services/api", () => ({
+  api: {
+    get: jest.fn(),
+    post: jest.fn(),
+  },
+}))
+jest.mock("react-router-dom", () => ({
+  useNavigate: jest.fn(),
+}))
+
+      email: "
 
 describe("ProfilePage Component", () => {
   const renderProfilePage = () => {
