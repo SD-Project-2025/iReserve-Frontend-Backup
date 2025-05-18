@@ -7,5 +7,6 @@ export default {
   moduleFileExtensions: ["js", "jsx", "ts", "tsx"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1"
-  }
+  },
+   setupFiles: ['./jest.setup.js'],
 };
