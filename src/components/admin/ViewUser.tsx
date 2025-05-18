@@ -1,10 +1,8 @@
 "use client"
-
 import React from "react"
 import {
   Typography,
-  Card,
-  CardContent,
+
   Button,
   Box,
   Chip,
@@ -18,6 +16,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Container,
+  Paper,
+  Stack,
+  TextField,
 } from "@mui/material"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
@@ -25,13 +27,11 @@ import {
   ArrowBack as BackIcon,
   Block as BlockIcon,
   CheckCircle as ActivateIcon,
-  
   PersonAdd as PersonAddIcon,
   Work as WorkIcon,
   AdminPanelSettings as AdminIcon,
 } from "@mui/icons-material"
-import { api } from "@/services/api" // Adjust path if needed
-import { Label } from "recharts"
+import { api } from "@/services/api"
 
 interface User {
   user_id: number
@@ -59,9 +59,20 @@ interface Resident {
   membership_end_date: string
 }
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "active":
+      return "success"
+    case "inactive":
+      return "error"
+    default:
+      return "default"
+  }
+}
+
 const ViewUser: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()  
+  const navigate = useNavigate()
   const location = useLocation()
   const [user, setUser] = useState<User | null>(null)
   const [staff, setStaff] = useState<Staff | null>(null)
@@ -69,17 +80,21 @@ const ViewUser: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
   const userType = location.state?.userType || user?.type || "unknown"
   const userData = location.state?.userData
-  
+
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false)
   const [adminDialogOpen, setAdminDialogOpen] = useState(false)
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
   const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false)
-
   const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
-  const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(null)
+  const [dialogAdminAction, setDialogAdminAction] = useState<{
+    id: number
+    is_admin: boolean
+  } | null>(null)
+  const [employeeId, setEmployeeId] = useState("")
   const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
@@ -87,15 +102,12 @@ const ViewUser: React.FC = () => {
       try {
         setLoading(true)
         setError(null)
-
         if (location.state?.userData) {
           setUser(location.state.userData)
           return
         }
-
         const response = await api.get(`/manage/users`)
         const foundUser = response.data.data.find((u: User) => u.user_id.toString() === id)
-
         if (foundUser) {
           setUser(foundUser)
         } else {
@@ -113,28 +125,27 @@ const ViewUser: React.FC = () => {
 
     fetchUser()
   }, [id, location.state])
-useEffect(() => {
-  switch (userType) {
-    case "staff":
-      setStaff(userData)
-      break
-    case "resident":
-      setResident(userData)
-      break
-    default:
-      setStaff(null)
-      setResident(null)
-  }
-}, [userType, userData])
 
-  // Handle user status update
+  useEffect(() => {
+    switch (userType) {
+      case "staff":
+        setStaff(userData)
+        break
+      case "resident":
+        setResident(userData)
+        break
+      default:
+        setStaff(null)
+        setResident(null)
+    }
+  }, [userType, userData])
+
   const handleUpdateUserStatus = async () => {
     if (!dialogAction || !user) return
     try {
       setProcessing(true)
       const newStatus = dialogAction.action === "activate" ? "active" : "inactive"
       const res = await api.put(`/manage/users/${dialogAction.id}/status`, { status: newStatus })
-
       if (res.data?.success) {
         setUser({ ...user, status: newStatus })
         setError(null)
@@ -151,7 +162,6 @@ useEffect(() => {
     }
   }
 
-  // Handle admin role toggle
   const handleToggleAdmin = async () => {
     if (!dialogAdminAction || !user) return
     try {
@@ -159,7 +169,6 @@ useEffect(() => {
       const res = await api.put(`/manage/users/${dialogAdminAction.id}/admin`, {
         is_admin: dialogAdminAction.is_admin,
       })
-
       if (res.data?.success) {
         setUser({ ...user, is_admin: dialogAdminAction.is_admin })
         setError(null)
@@ -175,15 +184,12 @@ useEffect(() => {
     }
   }
 
-  // Handle upgrade to staff
   const handleUpgradeToStaff = async () => {
     if (!user) return
     try {
       setProcessing(true)
-      // Get the employee_id value from the input field
       const code = "EMP"
-      const employeeIdInput = document.querySelector<HTMLInputElement>('input[name="employee_id"]')
-      const employee_id = employeeIdInput ? code + employeeIdInput.value : ""
+      const employee_id = code + employeeId.trim()
 
       if (!employee_id) {
         setError("Employee ID is required.")
@@ -191,36 +197,33 @@ useEffect(() => {
         return
       }
 
-      const res = await api.post(`/manage/users/${user?.user_id}/upgrade`, {
+      const res = await api.post(`/manage/users/${user.user_id}/upgrade`, {
         employee_id,
       })
 
       if (res.data?.success) {
         setUser({ ...user, type: "staff" })
         setError(null)
-        // Show a success message on the UI
         setSuccessMessage("User successfully upgraded to staff.")
-        setTimeout(() => {
-          setSuccessMessage(null)
-        }, 3000)
+        setTimeout(() => setSuccessMessage(null), 3000)
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message || "Failed to upgrade user to staff. Please try again later."
+        err.response?.data?.message ||
+          "Failed to upgrade user to staff. Please try again later."
       )
     } finally {
       setProcessing(false)
       setUpgradeDialogOpen(false)
+      setEmployeeId("")
     }
   }
 
-  // Handle downgrade to resident
   const handleDowngradeToResident = async () => {
     if (!user) return
     try {
       setProcessing(true)
-      const res = await api.post(`/manage/users/${user?.user_id}/downgrade`)
-
+      const res = await api.post(`/manage/users/${user.user_id}/downgrade`)
       if (res.data?.success) {
         setUser({ ...user, type: "resident", is_admin: false })
         setError(null)
@@ -254,19 +257,6 @@ useEffect(() => {
     setDowngradeDialogOpen(true)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "success"
-      case "inactive":
-        return "error"
-      default:
-        return "default"
-    }
-  }
-
-   
-
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
@@ -290,180 +280,163 @@ useEffect(() => {
       </Alert>
     )
   }
+
   return (
-    <section>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       {successMessage && (
-        <Alert severity="success" sx={{ my: 3 }}>
+        <Alert severity="success" sx={{ mb: 2 }}>
           {successMessage}
         </Alert>
       )}
+
       <Button
         startIcon={<BackIcon />}
         onClick={() => navigate("/admin/users")}
-        sx={{ mb: 2 }}
+        sx={{ mb: 3 }}
         variant="outlined"
+        color="inherit"
       >
         Back to Users
       </Button>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-            <Avatar sx={{ width: 64, height: 64, mr: 3 }}>
-              {user.name.charAt(0)}
-            </Avatar>
-            <Box>
-              <Typography variant="h4" component="h1">
-                {user.name}
-              </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                {user.email}
-              </Typography>
-            </Box>
+      <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems="center">
+          <Avatar sx={{ width: 80, height: 80 }}>{user.name.charAt(0)}</Avatar>
+          <Box textAlign={{ xs: "center", md: "left" }}>
+            <Typography variant="h5" fontWeight="bold">
+              {user.name}
+            </Typography>
+            <Typography color="text.secondary">{user.email}</Typography>
+            <Chip
+              label={user.status}
+              color={getStatusColor(user.status)}
+              size="small"
+              sx={{ mt: 1 }}
+            />
           </Box>
+        </Stack>
 
-          <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 3 }} />
 
-            <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1">
               <strong>User ID:</strong> {user.user_id}
-              </Typography>
-              <Typography variant="subtitle1" gutterBottom>
+            </Typography>
+            <Typography variant="subtitle1">
               <strong>Type:</strong> {userType}
-              </Typography>
-              {/* Staff-specific info */}
-              {userType === "staff" && staff && (
+            </Typography>
+
+            {userType === "staff" && staff && (
               <>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Employee ID:</strong> {staff.employee_id}
+                <Typography variant="subtitle1">
+                  <strong>Employee ID:</strong> {staff.employee_id}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Position:</strong> {staff.position}
+                <Typography variant="subtitle1">
+                  <strong>Position:</strong> {staff.position}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Department:</strong> {staff.department}
+                <Typography variant="subtitle1">
+                  <strong>Department:</strong> {staff.department}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Admin:</strong> {staff.is_admin ? "Yes" : "No"}
+                <Typography variant="subtitle1">
+                  <strong>Admin:</strong> {staff.is_admin ? "Yes" : "No"}
                 </Typography>
               </>
-              )}
-              {/* Resident-specific info */}
-              {userType === "resident" && resident && (
+            )}
+
+            {userType === "resident" && resident && (
               <>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Membership Type:</strong> {resident.membership_type}
+                <Typography variant="subtitle1">
+                  <strong>Membership Type:</strong> {resident.membership_type}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Membership Start:</strong> {new Date(resident.membership_start_date).toLocaleDateString()}
+                <Typography variant="subtitle1">
+                  <strong>Start Date:</strong>{" "}
+                  {new Date(resident.membership_start_date).toLocaleDateString()}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Membership End:</strong> {new Date(resident.membership_end_date).toLocaleDateString()}
+                <Typography variant="subtitle1">
+                  <strong>End Date:</strong>{" "}
+                  {new Date(resident.membership_end_date).toLocaleDateString()}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Address:</strong> {resident.encrypted_address}
+                <Typography variant="subtitle1">
+                  <strong>Address:</strong> {resident.encrypted_address}
                 </Typography>
               </>
-              )}
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
+            )}
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Typography variant="subtitle1">
               <strong>Status:</strong>{" "}
               <Chip label={user.status} color={getStatusColor(user.status)} size="small" />
-              </Typography>
-              <Typography variant="subtitle1" gutterBottom>
+            </Typography>
+            <Typography variant="subtitle1">
               <strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}
-              </Typography>
-            </Grid>
-            </Grid>
+            </Typography>
+          </Grid>
+        </Grid>
 
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3, gap: 2 }}>
-            {/* Toggle Admin Role */}
+        <Divider sx={{ my: 3 }} />
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            color={user.is_admin ? "error" : "success"}
+            startIcon={<AdminIcon />}
+            onClick={() => openAdminDialog(user.user_id, !user.is_admin)}
+          >
+            {user.is_admin ? "Revoke Admin" : "Make Admin"}
+          </Button>
+
+          {userType === "resident" ? (
             <Button
-              variant="contained"
-              color={user.is_admin ? "error" : "success"}
-              startIcon={<AdminIcon />}
-              onClick={() => openAdminDialog(user.user_id, !user.is_admin)}
-            >
-              {user.is_admin ? "Revoke Admin" : "Make Admin"}
-            </Button>
-
-            {/* Upgrade/Downgrade Button */}
-            {userType === "resident" ? (
-              <Button
               variant="contained"
               color="info"
               startIcon={<WorkIcon />}
               onClick={openUpgradeDialog}
-              >
+            >
               Upgrade to Staff
-              </Button>
-            ) : (
-              <Button
+            </Button>
+          ) : (
+            <Button
               variant="contained"
               color="warning"
               startIcon={<PersonAddIcon />}
               onClick={openDowngradeDialog}
-              >
+            >
               Downgrade to Resident
-              </Button>
-            )}
+            </Button>
+          )}
 
-            {/* Activate/Deactivate Button */}
-            {user.status === "active" ? (
-              <Button
-              variant="contained"
-              color="error"
-              startIcon={<BlockIcon />}
-              onClick={() => openDialog(user.user_id, "deactivate")}
-              sx={{ whiteSpace: "nowrap" }}
-              >
-              Deactivate User
-              </Button>
-            ) : (
-              <Button
-              variant="contained"
-              color="success"
-              startIcon={<ActivateIcon />}
-              onClick={() => openDialog(user.user_id, "activate")}
-              sx={{ whiteSpace: "nowrap" }}
-              >
-              Activate User
-              </Button>
-            )}
-          </Box>
-        </CardContent>
-      </Card>
+          <Button
+            variant="contained"
+            color={user.status === "active" ? "error" : "success"}
+            startIcon={user.status === "active" ? <BlockIcon /> : <ActivateIcon />}
+            onClick={() => openDialog(user.user_id, user.status === "active" ? "deactivate" : "activate")}
+          >
+            {user.status === "active" ? "Deactivate" : "Activate"} User
+          </Button>
+        </Box>
+      </Paper>
 
       {/* Status Update Dialog */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {dialogAction?.action === "activate" ? "Activate User" : "Deactivate User"}
-        </DialogTitle>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>{dialogAction?.action === "activate" ? "Activate User" : "Deactivate User"}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-        {dialogAction?.action === "activate"
-          ? "Are you sure you want to activate this user?"
-          : "Are you sure you want to deactivate this user?"}
+            Are you sure you want to {dialogAction?.action === "activate" ? "activate" : "deactivate"} this user?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)} disabled={processing}>
-        Cancel
+            Cancel
           </Button>
           <Button
-        onClick={handleUpdateUserStatus}
-        color={dialogAction?.action === "activate" ? "success" : "error"}
-        disabled={processing}
+            onClick={handleUpdateUserStatus}
+            color={dialogAction?.action === "activate" ? "success" : "error"}
+            disabled={processing}
+            startIcon={processing && <CircularProgress size={20} />}
           >
-        {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
-        {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
+            {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -488,9 +461,9 @@ useEffect(() => {
             onClick={handleToggleAdmin}
             color={dialogAdminAction?.is_admin ? "success" : "error"}
             disabled={processing}
+            startIcon={processing && <CircularProgress size={20} />}
           >
             Confirm
-            {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
           </Button>
         </DialogActions>
       </Dialog>
@@ -499,16 +472,15 @@ useEffect(() => {
       <Dialog open={upgradeDialogOpen} onClose={() => setUpgradeDialogOpen(false)}>
         <DialogTitle>Upgrade to Staff</DialogTitle>
         <DialogContent>
-          <Box sx={{ mb: 2 }}>
-            <Label>Employee ID</Label>
-            <input
-              type="text"
-              name="employee_id"
-              placeholder="Enter Employee ID"
-              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
-            />
-          </Box>
-          <DialogContentText>
+          <TextField
+            fullWidth
+            label="Employee ID"
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+            margin="normal"
+            helperText="Prefix will be added automatically (e.g., EMP123)"
+          />
+          <DialogContentText sx={{ mt: 2 }}>
             Are you sure you want to upgrade this user to a staff member?
           </DialogContentText>
         </DialogContent>
@@ -516,9 +488,13 @@ useEffect(() => {
           <Button onClick={() => setUpgradeDialogOpen(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleUpgradeToStaff} color="info" disabled={processing}>
+          <Button
+            onClick={handleUpgradeToStaff}
+            color="info"
+            disabled={processing}
+            startIcon={processing && <CircularProgress size={20} />}
+          >
             Upgrade
-            {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
           </Button>
         </DialogActions>
       </Dialog>
@@ -527,7 +503,7 @@ useEffect(() => {
       <Dialog open={downgradeDialogOpen} onClose={() => setDowngradeDialogOpen(false)}>
         <DialogTitle>Downgrade to Resident</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ flexGrow: 1 }}>
+          <DialogContentText>
             Are you sure you want to downgrade this staff member to a resident?
           </DialogContentText>
         </DialogContent>
@@ -535,13 +511,17 @@ useEffect(() => {
           <Button onClick={() => setDowngradeDialogOpen(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleDowngradeToResident} color="warning" disabled={processing}>
+          <Button
+            onClick={handleDowngradeToResident}
+            color="warning"
+            disabled={processing}
+            startIcon={processing && <CircularProgress size={20} />}
+          >
             Downgrade
-            {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
           </Button>
         </DialogActions>
       </Dialog>
-    </section>
+    </Container>
   )
 }
 
