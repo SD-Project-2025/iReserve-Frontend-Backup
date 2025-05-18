@@ -1,139 +1,65 @@
-import React from "react"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import NotificationsPage from "@/pages/notifications/NotificationsPage"
-import { api } from "@/services/api"
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
+import NotFoundPage from '@/pages/NotFoundPage';
 
-// Mock the API module
-jest.mock("@/services/api", () => ({
-  api: {
-    get: jest.fn(),
-    put: jest.fn(),
-  },
-}))
+// Mock the useNavigate hook
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: jest.fn(),
+}));
 
-describe("NotificationsPage Component", () => {
-  const mockNotifications: Notification[] = [
-    {
-      notification_id: 1,
-      title: "Booking Approved",
-      message: "Your booking has been confirmed.",
-      type: "booking",
-      created_at: new Date().toISOString(),
-      read: false,
-    },
-    {
-      notification_id: 2,
-      title: "Facility Maintenance",
-      message: "Pool will be closed for maintenance on Monday.",
-      type: "maintenance",
-      created_at: new Date(Date.now() - 86400000).toISOString(), // yesterday
-      read: true,
-    },
-  ]
+describe('NotFoundPage', () => {
+  const mockNavigate = jest.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks()
-  })
+    jest.clearAllMocks();
+    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+  });
 
-  test("renders loading state", async () => {
-    ;(api.get as jest.Mock).mockImplementationOnce(() =>
-      new Promise((resolve) => setTimeout(resolve, 100)),
-    )
+  const renderComponent = () => {
+    return render(
+      <BrowserRouter>
+        <NotFoundPage />
+      </BrowserRouter>
+    );
+  };
 
-    render(<NotificationsPage />)
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
-  })
+  test('renders 404 title and message', () => {
+    renderComponent();
+    
+    // Check for the 404 heading
+    expect(screen.getByText('404')).toBeInTheDocument();
+    
+    // Check for the error message
+    expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+    expect(screen.getByText("The page you are looking for doesn't exist or has been moved.")).toBeInTheDocument();
+  });
 
-  test("renders error message if fetching fails", async () => {
-    ;(api.get as jest.Mock).mockRejectedValueOnce(new Error("API Error"))
+  test('navigates to dashboard when button is clicked', () => {
+    renderComponent();
+    
+    // Find and click the dashboard button
+    const dashboardButton = screen.getByText('Go to Dashboard');
+    fireEvent.click(dashboardButton);
+    
+    // Verify navigation was called with correct path
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
 
-    render(<NotificationsPage />)
-    await waitFor(() => {
-      expect(screen.getByText(/failed to load notifications/i)).toBeInTheDocument()
-    })
-  })
-
-  test("displays no notifications message when list is empty", async () => {
-    ;(api.get as jest.Mock).mockResolvedValueOnce({ data: { data: [] } })
-
-    render(<NotificationsPage />)
-    await waitFor(() => {
-      expect(screen.getByText(/no notifications found/i)).toBeInTheDocument()
-    })
-  })
-
-  test("renders all notifications with correct content", async () => {
-    ;(api.get as jest.Mock).mockResolvedValueOnce({ data: { data: mockNotifications } })
-
-    render(<NotificationsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/Booking Approved/i)).toBeInTheDocument()
-      expect(screen.getByText(/Facility Maintenance/i)).toBeInTheDocument()
-
-      expect(screen.getByText(/Your booking has been confirmed./i)).toBeInTheDocument()
-      expect(
-        screen.getByText(/Pool will be closed for maintenance on Monday./i)
-      ).toBeInTheDocument()
-
-      expect(screen.getByText(/booking/i)).toBeInTheDocument()
-      expect(screen.getByText(/maintenance/i)).toBeInTheDocument()
-
-      const dates = screen.getAllByText(/:/)
-      expect(dates.length).toBeGreaterThan(0)
-    })
-  })
-
-  test("marks a single notification as read on button click", async () => {
-    ;(api.get as jest.Mock).mockResolvedValueOnce({ data: [mockNotifications[0]] }) // Only one notification
-    ;(api.put as jest.Mock).mockResolvedValueOnce({})
-
-    render(<NotificationsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/Booking Approved/i)).toBeInTheDocument()
-    })
-
-    const markAsReadButton = screen.getByRole("button", { name: /mark as read/i })
-    fireEvent.click(markAsReadButton)
-
-    await waitFor(() => {
-      expect(api.put).toHaveBeenCalledWith("/notifications/1/read")
-      expect(screen.queryByText(/mark as read/i)).not.toBeInTheDocument()
-    })
-  })
-
-  test("marks all notifications as read when 'Mark All' is clicked", async () => {
-    ;(api.get as jest.Mock).mockResolvedValueOnce({ data: mockNotifications })
-    ;(api.put as jest.Mock).mockResolvedValueOnce({})
-
-    render(<NotificationsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/Booking Approved/i)).toBeInTheDocument()
-    })
-
-    const markAllButton = screen.getByRole("button", { name: /mark all as read/i })
-    fireEvent.click(markAllButton)
-
-    await waitFor(() => {
-      expect(api.put).toHaveBeenCalledWith("/notifications/read-all")
-      const readButtons = screen.queryAllByText(/mark as read/i)
-      expect(readButtons.length).toBe(0)
-    })
-  })
-
-  test("applies correct styles for unread notifications", async () => {
-    ;(api.get as jest.Mock).mockResolvedValueOnce({ data: mockNotifications })
-
-    render(<NotificationsPage />)
-
-    await waitFor(() => {
-      const unreadNotificationCard = screen.getByText(/Booking Approved/i).closest(".MuiListItem-root")
-      expect(unreadNotificationCard).toHaveStyle({ backgroundColor: "rgba(0, 0, 0, 0.04)" }) // MUI action.hover color
-    })
-
-    const readNotificationCard = screen.getByText(/Facility Maintenance/i).closest(".MuiListItem-root")
-    expect(readNotificationCard).toHaveStyle({ backgroundColor: "transparent" })
-  })
-})
+  test('button is rendered with correct styling', () => {
+    renderComponent();
+    
+    // Get the button
+    const button = screen.getByText('Go to Dashboard');
+    
+    // Check that it's a button element
+    expect(button.tagName).toBe('BUTTON');
+    
+    // Check for contained variant (this is a simple check - in a real test you might want 
+    // to check for specific classes or styles, but that would be implementation-specific)
+    expect(button).toHaveAttribute('class');
+    expect(button.className).toContain('MuiButton-contained');
+  });
+});

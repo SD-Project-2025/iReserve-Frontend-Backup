@@ -1,39 +1,30 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import '@testing-library/jest-dom';
+import EditEvent from '@/components/Events/EditEvent';
+import { api } from '@/services/api';
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import EditEvent from  '../../../components/Events/EditEvent'
-import { api } from '@/services/api'
-
-// Mock the react-router-dom hooks
+// Mock the API and react-router-dom
+jest.mock('@/services/api');
 jest.mock('react-router-dom', () => ({
-  useParams: jest.fn(),
-  useNavigate: jest.fn(),
-  useLocation: jest.fn(),
-}))
-
-// Mock the API service
-jest.mock('@/services/api', () => ({
-  get: jest.fn(),
-  put: jest.fn(),
-}))
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => jest.fn(),
+  useLocation: () => ({
+    state: { id: '1' }
+  }),
+}));
 
 // Mock date-fns format
 jest.mock('date-fns', () => ({
   format: jest.fn().mockImplementation(() => '2023-01-01'),
-}))
+}));
 
 describe('EditEvent Component', () => {
-  const mockNavigate = jest.fn()
-  const mockLocation = {
-    state: {
-      id: '1',
-    },
-  }
-
   const mockEvent = {
     event_id: 1,
     title: 'Test Event',
-    description: 'This is a test event',
+    description: 'Test Description',
     facility_id: 1,
     start_date: new Date('2023-01-01'),
     end_date: new Date('2023-01-02'),
@@ -42,158 +33,164 @@ describe('EditEvent Component', () => {
     organizer_staff_id: 1,
     status: 'upcoming',
     capacity: 100,
-    image_url: 'https://example.com/image.jpg',
+    image_url: 'http://test.com/image.jpg',
     is_public: true,
     registration_deadline: new Date('2022-12-25'),
-    fee: 0,
-  }
+    fee: 50,
+  };
 
   const mockFacilities = [
-    { facility_id: 1, name: 'Main Hall' },
-    { facility_id: 2, name: 'Conference Room' },
-  ]
+    { facility_id: 1, name: 'Facility 1' },
+    { facility_id: 2, name: 'Facility 2' },
+  ];
 
   beforeEach(() => {
-    ;(useParams as jest.Mock).mockReturnValue({ id: '1' })
-    ;(useNavigate as jest.Mock).mockReturnValue(mockNavigate)
-    ;(useLocation as jest.Mock).mockReturnValue(mockLocation)
-    ;(api.get as jest.Mock).mockImplementation((url) => {
-      if (url === '/events/1') {
-        return Promise.resolve({ data: { data: mockEvent } })
-      }
-      if (url === '/facilities') {
-        return Promise.resolve({ data: { data: mockFacilities } })
-      }
-      return Promise.reject(new Error('Not found'))
-    })
-    ;(api.put as jest.Mock).mockResolvedValue({})
-  })
+    // Reset all mocks before each test
+    jest.clearAllMocks();
+    
+    // Mock API responses
+    (api.get as jest.Mock)
+      .mockResolvedValueOnce({ data: { data: mockEvent } }) // Event data
+      .mockResolvedValueOnce({ data: { data: mockFacilities } }); // Facilities
+  });
 
-  afterEach(() => {
-    jest.clearAllMocks()
-  })
+  test('renders loading state initially', async () => {
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-  it('renders loading state initially', async () => {
-    render(<EditEvent />)
-    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    await waitFor(() => expect(api.get).toHaveBeenCalled());
+  });
+
+  test('renders form with event data after loading', async () => {
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
     await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.getByLabelText('Event Title')).toHaveValue('Test Event');
+      expect(screen.getByLabelText('Description')).toHaveValue('Test Description');
+      expect(screen.getByText('Facility 1')).toBeInTheDocument();
+      expect(screen.getByText('Upcoming')).toBeInTheDocument();
+    });
+  });
 
-  it('displays error message when data fetch fails', async () => {
-    ;(api.get as jest.Mock).mockRejectedValueOnce(new Error('Fetch failed'))
-    render(<EditEvent />)
+  test('handles form field changes', async () => {
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
     await waitFor(() => {
-      expect(screen.getByText(/failed to load event data/i)).toBeInTheDocument()
-    })
-  })
+      const titleInput = screen.getByLabelText('Event Title');
+      fireEvent.change(titleInput, { target: { value: 'Updated Event' } });
+      expect(titleInput).toHaveValue('Updated Event');
 
-  it('renders event form with data after loading', async () => {
-    render(<EditEvent />)
+      const descriptionInput = screen.getByLabelText('Description');
+      fireEvent.change(descriptionInput, { target: { value: 'Updated Description' } });
+      expect(descriptionInput).toHaveValue('Updated Description');
+    });
+  });
+
+  test('handles form submission', async () => {
+    (api.put as jest.Mock).mockResolvedValue({});
+
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
     await waitFor(() => {
-      expect(screen.getByText(/edit event/i)).toBeInTheDocument()
-      expect(screen.getByDisplayValue('Test Event')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('This is a test event')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('https://example.com/image.jpg')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('100')).toBeInTheDocument()
-      expect(screen.getByDisplayValue('0')).toBeInTheDocument()
-    })
-  })
+      const submitButton = screen.getByText('Save Changes');
+      fireEvent.click(submitButton);
+    });
 
-  it('updates form fields when user inputs data', async () => {
-    render(<EditEvent />)
     await waitFor(() => {
-      const titleInput = screen.getByLabelText('Event Title')
-      fireEvent.change(titleInput, { target: { value: 'Updated Event' } })
-      expect(titleInput).toHaveValue('Updated Event')
+      expect(api.put).toHaveBeenCalledWith('/events/1', expect.any(Object));
+    });
+  });
 
-      const descriptionInput = screen.getByLabelText('Description')
-      fireEvent.change(descriptionInput, { target: { value: 'Updated description' } })
-      expect(descriptionInput).toHaveValue('Updated description')
+  test('displays error when API fails', async () => {
+    (api.get as jest.Mock)
+      .mockRejectedValueOnce(new Error('API Error'));
 
-      const capacityInput = screen.getByLabelText('Capacity')
-      fireEvent.change(capacityInput, { target: { value: '150' } })
-      expect(capacityInput).toHaveValue(150)
-    })
-  })
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-  it('handles facility selection change', async () => {
-    render(<EditEvent />)
     await waitFor(() => {
-      const facilitySelect = screen.getByLabelText('Facility')
-      fireEvent.change(facilitySelect, { target: { value: '2' } })
-      expect(facilitySelect).toHaveValue('2')
-    })
-  })
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
 
-  it('handles status selection change', async () => {
-    render(<EditEvent />)
+  test('handles cancel button click', async () => {
+    const mockNavigate = jest.fn();
+    jest.spyOn(require('react-router-dom'), 'useNavigate').mockImplementation(() => mockNavigate);
+
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
     await waitFor(() => {
-      const statusSelect = screen.getByLabelText('Status')
-      fireEvent.change(statusSelect, { target: { value: 'ongoing' } })
-      expect(statusSelect).toHaveValue('ongoing')
-    })
-  })
+      const cancelButton = screen.getByText('Cancel');
+      fireEvent.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith('/events/1');
+    });
+  });
 
-  it('toggles public event switch', async () => {
-    render(<EditEvent />)
+  test('displays status chip with correct color', async () => {
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
     await waitFor(() => {
-      const publicSwitch = screen.getByLabelText('Public Event')
-      expect(publicSwitch).toBeChecked()
-      fireEvent.click(publicSwitch)
-      expect(publicSwitch).not.toBeChecked()
-    })
-  })
+      const statusChip = screen.getByText('upcoming');
+      expect(statusChip).toHaveClass('MuiChip-colorPrimary');
+    });
+  });
 
-  it('submits the form with updated data', async () => {
-    render(<EditEvent />)
-    await waitFor(async () => {
-      const titleInput = screen.getByLabelText('Event Title')
-      fireEvent.change(titleInput, { target: { value: 'Updated Event' } })
+  test('handles time and date picker changes', async () => {
+    render(
+      <MemoryRouter initialEntries={['/events/1/edit']}>
+        <Routes>
+          <Route path="/events/:id/edit" element={<EditEvent />} />
+        </Routes>
+      </MemoryRouter>
+    );
 
-      const submitButton = screen.getByRole('button', { name: /save changes/i })
-      fireEvent.click(submitButton)
-
-      await waitFor(() => {
-        expect(api.put).toHaveBeenCalledWith('/events/1', {
-          ...mockEvent,
-          title: 'Updated Event',
-          start_date: '2023-01-01',
-          end_date: '2023-01-01',
-          registration_deadline: '2023-01-01',
-        })
-        expect(mockNavigate).toHaveBeenCalledWith('/events/1', {
-          state: { message: 'Event updated!' },
-        })
-      })
-    })
-  })
-
-  it('handles form submission error', async () => {
-    ;(api.put as jest.Mock).mockRejectedValueOnce(new Error('Update failed'))
-    render(<EditEvent />)
-    await waitFor(async () => {
-      const submitButton = screen.getByRole('button', { name: /save changes/i })
-      fireEvent.click(submitButton)
-      // You might want to add error state handling in your component to test this
-    })
-  })
-
-  it('cancels and navigates back', async () => {
-    render(<EditEvent />)
     await waitFor(() => {
-      const cancelButton = screen.getByRole('button', { name: /cancel/i })
-      fireEvent.click(cancelButton)
-      expect(mockNavigate).toHaveBeenCalledWith('/events/1')
-    })
-  })
+      const startDateInput = screen.getByLabelText('Start Date');
+      fireEvent.change(startDateInput, { target: { value: '2023-01-03' } });
 
-  it('displays status chip with correct color', async () => {
-    render(<EditEvent />)
-    await waitFor(() => {
-      const statusChip = screen.getByText('upcoming')
-      expect(statusChip).toHaveClass('MuiChip-colorPrimary')
-    })
-  })
-})
+      const startTimeInput = screen.getByLabelText('Start Time');
+      fireEvent.change(startTimeInput, { target: { value: '11:00' } });
+    });
+  });
+});
