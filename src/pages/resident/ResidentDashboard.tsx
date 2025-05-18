@@ -29,7 +29,9 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import { isSameDay } from "date-fns"
 import ChatbotWidget from "../../components/chatbot/ChatbotWidget"
 
-const OPENWEATHER_API_KEY = "503990715e3d001d29e30e6113559cee";
+
+const OPENWEATHER_API_KEY =import.meta.env.VITE_OPENWEATHER_API_KEY
+
 const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 // Helper: join bookings with facilities (for active and future bookings)
