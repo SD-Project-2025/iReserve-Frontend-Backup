@@ -44,10 +44,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
-<<<<<<< HEAD
     "@babel/plugin-syntax-import-meta": "^7.10.4",
-=======
->>>>>>> 9967a30126cc03c15e5c165b8379f52c439f7c0f
+
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
