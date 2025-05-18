@@ -1,4 +1,5 @@
-
+//@ts-ignore
+import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest"; // or use 'jest' if you're using Jest directly
 import PaymentCancelled from "@/pages/payments/PaymentCancelled";

@@ -4,7 +4,8 @@ import { vi } from "vitest"; // or use 'jest' if you're using Jest directly
 import PaymentSuccessful from "@/pages/payments/PaymentSuccessful";
 import { useNavigate, useParams } from "react-router-dom";
 import { waitFor } from "@testing-library/react";
-
+//@ts-ignore
+import React from "react";
 // Mock react-router hooks
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");

@@ -1,3 +1,4 @@
+//@ts-ignore
 import React from 'react'
 import { render, act, screen } from '@testing-library/react'
 import { useNavigate } from 'react-router-dom'

@@ -1,4 +1,5 @@
-
+//@ts-ignore
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import NotFoundPage from '@/pages/NotFoundPage';
