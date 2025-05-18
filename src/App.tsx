@@ -110,6 +110,9 @@ function App() {
         <Route path="/maintenance/create" element={<CreateMaintenancePage />} />
         <Route path="/maintenance/:id" element={<MaintenanceDetailsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/payments/:id/success" element={<PaymentSuccessful />} />
+        <Route path="/payments/:id/cancelled" element={<PaymentCancelled />} />
+
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/payments/:id/success" element={<PaymentSuccessful />} />
         <Route path="/payments/:id/cancelled" element={<PaymentCancelled />} />

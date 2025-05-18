@@ -81,7 +81,6 @@ const ManageEventsPage = () => {
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterFacility, setFilterFacility] = useState<string>("all")
@@ -92,37 +91,58 @@ const ManageEventsPage = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [actionSuccess, setActionSuccess] = useState(false)
   const [actionMessage, setActionMessage] = useState("")
+  const [success, setSuccess] = useState<string | null>(null)
+  const [noAssignedFacilities, setNoAssignedFacilities] = useState(false)
 
   const fetchEvents = async () => {
-    let response
     try {
       setLoading(true)
-      setError(null)
+      setNoAssignedFacilities(false)
 
       const userProfile = await api.get("/auth/me")
       const staffId = userProfile.data.data.profile.staff_id
-      if (staffId){
+
+      if (staffId && userProfile.data.data.profile.is_admin === false) {
         try {
-          response = await api.get(`/events/staff/${staffId}/events`)
+          const response = await api.get(`/events/staff/${staffId}/events`)
           
-        } catch (error) {
-          console.error("Error fetching staff events:", error);
-          throw error;
+          if (response.data.message === 'No facilities assigned to this staff member.') {
+            setActionMessage("No facilities are assigned to you. Please contact administrator.")
+            setActionSuccess(true)
+            setEvents([])
+            setFilteredEvents([])
+            return
+          }
+
+          const eventsWithDefaults = response.data.data.map((event: Event) => ({
+            ...event,
+            current_attendees: event.current_attendees || 0
+          }))
+          setEvents(eventsWithDefaults)
+          setFilteredEvents(eventsWithDefaults)
+        } catch (error: any) {
+          if (error.response?.data?.message === 'No facilities assigned to this staff member.') {
+            setActionMessage("No facilities are assigned to you. Please contact administrator.")
+            setActionSuccess(true)
+            setEvents([])
+            setFilteredEvents([])
+          } else {
+            console.error("Error fetching staff events:", error)
+            setSuccess("Failed to load your events. Please try again later.")
+            setNoAssignedFacilities(true)
+          }
         }
-        
-      }else{
-        response = await api.get("/events")
+      } else {
+        const response = await api.get("/events")
+        const eventsWithDefaults = response.data.data.map((event: Event) => ({
+          ...event,
+          current_attendees: event.current_attendees || 0
+        }))
+        setEvents(eventsWithDefaults)
+        setFilteredEvents(eventsWithDefaults)
       }
-      
-      const eventsWithDefaults = response.data.data.map((event: Event) => ({
-        ...event,
-        current_attendees: event.current_attendees || 0 // Set default if not provided
-      }))
-      setEvents(eventsWithDefaults)
-      setFilteredEvents(eventsWithDefaults)
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching events:", err)
-      setError("Failed to load events. Please try again later.")
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -134,10 +154,8 @@ const ManageEventsPage = () => {
   }, [])
 
   useEffect(() => {
-    // Apply filters
     let result = events
 
-    // Filter by search term
     if (searchTerm) {
       result = result.filter(
         (event) =>
@@ -149,12 +167,10 @@ const ManageEventsPage = () => {
       )
     }
 
-    // Filter by status
     if (filterStatus !== "all") {
       result = result.filter((event) => event.status === filterStatus)
     }
 
-    // Filter by facility
     if (filterFacility !== "all") {
       result = result.filter((event) => event.Facility?.facility_id === Number(filterFacility))
     }
@@ -196,7 +212,6 @@ const ManageEventsPage = () => {
       fetchEvents()
     } catch (err) {
       console.error("Error deleting event:", err)
-      setError("Failed to delete event. Please try again later.")
     } finally {
       setProcessing(false)
     }
@@ -388,11 +403,15 @@ const ManageEventsPage = () => {
         </Tooltip>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
+      
+
+      {noAssignedFacilities && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          You currently have no facilities assigned to you. Please contact your administrator.
         </Alert>
       )}
+
+       
 
       {/* Status Cards Summary */}
       <Box sx={{ mb: 4 }}>
@@ -858,6 +877,17 @@ const ManageEventsPage = () => {
         message={actionMessage}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       />
+
+      <Snackbar
+        open={!!success}
+        autoHideDuration={5000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
     </section>
   )
 }
