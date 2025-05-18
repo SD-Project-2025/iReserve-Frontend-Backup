@@ -50,7 +50,7 @@ interface MaintenanceReport {
   report_id: number
   title: string
   description: string
-  facility: {
+  Facility: {
     facility_id: number
     name: string
     location: string
@@ -108,6 +108,7 @@ const MaintenanceDetailsPage = () => {
 
         const response = await api.get(`/maintenance/${id}`)
         setReport(response.data.data)
+        console.log("data", response.data.data)
       } catch (err) {
         console.error("Error fetching maintenance report:", err)
         setError("Failed to load maintenance report. Please try again later.")
@@ -244,7 +245,7 @@ const MaintenanceDetailsPage = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <LocationIcon color="action" sx={{ mr: 1 }} />
                 <Typography>
-                  {report.facility?.name} • {report.facility?.location}
+                  {report.Facility?.name} • {report.Facility?.location}
                 </Typography>
               </Box>
 
@@ -376,7 +377,7 @@ const MaintenanceDetailsPage = () => {
                 fullWidth
                 
                 sx={{ mb: 2 }}
-                onClick={() => navigate(`/admin/facilities/${report.facility?.facility_id}`,{state:{id:report.facility?.facility_id}})}
+                onClick={() => navigate(`/admin/facilities/${report.Facility?.facility_id}`,{state:{id:report.Facility?.facility_id}})}
               >
                 View Facility
               </Button>
@@ -432,7 +433,7 @@ const MaintenanceDetailsPage = () => {
               {report.status !== "in-progress" && <MenuItem value="in-progress">In Progress</MenuItem>}
               {report.status !== "scheduled" && <MenuItem value="scheduled">Scheduled</MenuItem>}
               {report.status !== "completed" && <MenuItem value="completed">Completed</MenuItem>}
-              {report.status !== "cancelled" && <MenuItem value="cancelled">Cancelled</MenuItem>}
+              
             </Select>
           </FormControl>
           <TextField
