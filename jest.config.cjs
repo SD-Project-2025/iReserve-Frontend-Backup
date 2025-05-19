@@ -1,13 +1,16 @@
 // jest.config.js
 module.exports = {
-  testEnvironment: "jest-environment-jsdom", // For React components
+  testEnvironment: "jest-environment-jsdom",
   transform: {
-    "^.+\\.(js|jsx|ts|tsx)$": "babel-jest", // Transform JSX/TSX
+    "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
   },
-  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(js|ts)x?$", // Test file pattern
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-  setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"], // Optional setup file
+  transformIgnorePatterns: [
+    "/node_modules/(?!@babel)"
+  ],
+  setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
+  moduleFileExtensions: ["js", "jsx", "ts", "tsx"],
   moduleNameMapper: {
-  "^@/(.*)$": "<rootDir>/src/$1"
-},
-}
+    "^@/(.*)$": "<rootDir>/src/$1"
+  },
+  setupFiles: ['./jest.setup.js'],
+};

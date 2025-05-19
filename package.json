@@ -12,8 +12,6 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "start": "node index.js"
-
-    
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",
@@ -46,7 +44,6 @@
   "devDependencies": {
     "@babel/core": "^7.27.1",
     "@babel/plugin-syntax-import-meta": "^7.10.4",
-
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
