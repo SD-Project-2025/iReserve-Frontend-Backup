@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test:coverage": "vitest run --coverage"
     
   },
   "dependencies": {
