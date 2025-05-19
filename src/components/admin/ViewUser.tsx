@@ -73,7 +73,7 @@ const ViewUser: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const userType = location.state?.userType || user?.type || "unknown"
+ 
   const userData = location.state?.userData
   
   // Dialog states
@@ -81,6 +81,7 @@ const ViewUser: React.FC = () => {
   const [adminDialogOpen, setAdminDialogOpen] = useState(false)
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false)
   const [downgradeDialogOpen, setDowngradeDialogOpen] = useState(false)
+  const [userType, setUserType] = useState(location.state?.userType || user?.type || "unknown")
   const [employeeId, setEmployeeId] = useState("")
   const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
   const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(null)
@@ -192,7 +193,9 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
 
       if (res.data?.success) {
         setUser({ ...user, type: "staff" })
+        setUserType("staff")
         setError(null)
+        setEmployeeId(employee_id)
         // Show a success message on the UI
         setSuccessMessage("User successfully upgraded to staff.")
         setTimeout(() => {
@@ -216,8 +219,13 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
         status: status,
       })
       if (res.data?.success) {
+        if(status === "active") {
+          setUser({ ...user, status: "active" })
+          showSnackbar("Status change.", "success")
+        } else {
         setUser({ ...user, status: "suspended" })
         showSnackbar("Status change.", "success")
+        }
       }
     } catch (err: any) {
       setError(
@@ -240,6 +248,7 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
 
       if (res.data?.success) {
   setUser({ ...user, type: "resident", is_admin: false })
+  setUserType("resident")
   showSnackbar("User successfully downgraded to resident.", "success")
 }
     } catch (err: any) {
