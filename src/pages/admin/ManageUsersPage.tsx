@@ -96,6 +96,8 @@ const ManageUsersPage = () => {
         if (staffRes.data?.data) setStaff(staffRes.data.data)
         if (residentRes.data?.data) setResidents(residentRes.data.data)
           console.log("Staff Data:", staffRes.data.data)
+        console.log("Resident Data:", residentRes.data.data)
+        console.log("User Data:", userRes.data.data)
     
          
       } catch (err: any) {
@@ -348,23 +350,29 @@ const ManageUsersPage = () => {
                 ))}
               </>
             ) : (
-              <DataGrid
-                rows={filteredData}
-                columns={
-                  tabValue === 0 ? userColumns : tabValue === 1 ? staffColumns : residentColumns
-                }
-                getRowId={(row) =>
-                  `${tabValue}-${row.user_id || row.staff_id || row.resident_id}`
-                }
-                initialState={{
-                  pagination: {
-                    paginationModel: { page: 0, pageSize: 10 },
-                  },
-                }}
-                pageSizeOptions={[10, 25, 50]}
-                checkboxSelection={false}
-                disableRowSelectionOnClick
-              />
+            <DataGrid
+  rows={filteredData}
+  columns={
+    tabValue === 0 ? userColumns : tabValue === 1 ? staffColumns : residentColumns
+  }
+  getRowId={(row) =>
+    `${tabValue}-${row.user_id || row.staff_id || row.resident_id}`
+  }
+  initialState={{
+    pagination: { paginationModel: { page: 0, pageSize: 10 } },
+    columns: {
+      columnVisibilityModel: {
+        // default visibility
+        created_at: true,
+        email: true,
+        actions: true,
+      },
+    },
+  }}
+  pageSizeOptions={[10, 25, 50]}
+  checkboxSelection={false}
+  disableRowSelectionOnClick
+/>
             )}
           </CardContent>
         </Card>

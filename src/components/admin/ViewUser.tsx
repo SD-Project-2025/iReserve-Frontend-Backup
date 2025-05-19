@@ -53,14 +53,18 @@ interface Staff {
   position: string
   department: string
   is_admin: boolean
+  last_login: string
+  created_at: string
+  status: string
 }
 interface Resident {
   resident_id: number
   user_id: number
   encrypted_address: string
-  membership_type: "basic" | "premium" | "vip"
-  membership_start_date: string
-  membership_end_date: string
+  membership_type: string
+  created_at: string
+  last_login: string
+  status: string
 }
 
 const ViewUser: React.FC = () => {
@@ -106,18 +110,28 @@ const ViewUser: React.FC = () => {
         setError(null)
 
         if (location.state?.userData) {
+          switch (location.state.userType) {
+            case "staff":
+              setStaff(location.state.userData)
+              setUserType("staff")
+              break
+            case "resident":
+              setResident(location.state.userData)
+              setUserType("resident")
+              break
+            default:
+              setUserType("resident")
+              break
+          }
           setUser(location.state.userData)
+          setLoading(false)
           return
         }
 
-        const response = await api.get(`/auth/me`)
+        
        
 
-        if (response.data) {
-          setUser(response.data)
-        } else {
-          setError("User not found")
-        }
+         
       } catch (err: any) {
         console.error("Error fetching user:", err)
         setError(
@@ -134,6 +148,7 @@ useEffect(() => {
   switch (userType) {
     case "staff":
       setStaff(userData)
+      console.log("Staff data:", userData)
       break
     case "resident":
       setResident(userData)
@@ -379,13 +394,19 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
                 <strong>Employee ID:</strong> {staff.employee_id}
                 </Typography>
                 <Typography variant="subtitle1" gutterBottom>
-                <strong>Position:</strong> {staff.position}
+                <strong>Position:</strong> {staff?.position || "N/A"}
                 </Typography>
                 <Typography variant="subtitle1" gutterBottom>
-                <strong>Department:</strong> {staff.department}
+                <strong>Department:</strong> {staff.department|| "N/A"}
                 </Typography>
                 <Typography variant="subtitle1" gutterBottom>
                 <strong>Admin:</strong> {staff.is_admin ? "Yes" : "No"}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Created At:</strong> {new Date(staff.created_at).toLocaleDateString()}
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                <strong>Last Login:</strong> {new Date(staff.last_login).toLocaleDateString()}
                 </Typography>
               </>
               )}
@@ -396,14 +417,14 @@ const showSnackbar = (message: string, severity: "success" | "error" | "info" | 
                 <strong>Membership Type:</strong> {resident.membership_type}
                 </Typography>
                 <Typography variant="subtitle1" gutterBottom>
-                <strong>Membership Start:</strong> {new Date(resident.membership_start_date).toLocaleDateString()}
+                  <strong>Created At: </strong> {new Date(resident.created_at).toLocaleDateString()}
+                
                 </Typography>
                 <Typography variant="subtitle1" gutterBottom>
-                <strong>Membership End:</strong> {new Date(resident.membership_end_date).toLocaleDateString()}
+                  <strong>Last Login: </strong> {new Date(resident.last_login).toLocaleDateString()}
                 </Typography>
-                <Typography variant="subtitle1" gutterBottom>
-                <strong>Address:</strong> {resident.encrypted_address}
-                </Typography>
+                
+              
               </>
               )}
             </Grid>
