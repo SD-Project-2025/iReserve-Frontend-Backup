@@ -1,7 +1,7 @@
 "use client"
 import  { useState, useEffect } from "react"
 import {
-  Typography,
+
   
   Card,
   CardContent,
@@ -13,17 +13,13 @@ import {
   Select,
   MenuItem,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
+
   Button,
   Tabs,
   Tab,
 } from "@mui/material"
 import { DataGrid, type GridColDef } from "@mui/x-data-grid"
-import { Skeleton, CircularProgress } from "@mui/material" // Added for skeletons and progress indicator
+import { Skeleton} from "@mui/material" // Added for skeletons and progress indicator
 import { toast, ToastContainer } from "react-toastify" // Toast notifications
 import "react-toastify/dist/ReactToastify.css"
 import { useNavigate } from "react-router-dom"
@@ -73,17 +69,9 @@ const ManageUsersPage = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("userSearch") || "")
   const [filterStatus, setFilterStatus] = useState(() => localStorage.getItem("userStatus") || "all")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false)
-
-  const [dialogAction, setDialogAction] = useState<{ id: number; action: string } | null>(null)
-  const [dialogAdminAction, setDialogAdminAction] = useState<{ id: number; is_admin: boolean } | null>(
-    null
-  )
-  const [processing, setProcessing] = useState(false)
+  
   const navigate = useNavigate()
-  const [quickViewOpen, setQuickViewOpen] = useState(false)
-  const [quickViewUser] = useState<User | null>(null)
+
 
   // Save filters to localStorage
   useEffect(() => {
@@ -107,6 +95,10 @@ const ManageUsersPage = () => {
         if (userRes.data?.data) setUsers(userRes.data.data)
         if (staffRes.data?.data) setStaff(staffRes.data.data)
         if (residentRes.data?.data) setResidents(residentRes.data.data)
+          console.log("Staff Data:", staffRes.data.data)
+        console.log("Resident Data:", residentRes.data.data)
+        console.log("User Data:", userRes.data.data)
+    
          
       } catch (err: any) {
         console.error("Error fetching data:", err)
@@ -159,49 +151,6 @@ const ManageUsersPage = () => {
     setFilteredData(result)
   }, [tabValue, users, staff, residents, searchTerm, filterStatus])
 
-  // Handlers for actions
-  const handleUpdateUserStatus = async (userId: number, status: string) => {
-    try {
-      setProcessing(true)
-      const res = await api.put(`/manage/users/${userId}/status`, { status })
-      if (res.data?.success) {
-        setUsers((prev) =>
-          prev.map((user) => (user.user_id === userId ? { ...user, status } : user))
-        )
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update user status.")
-    } finally {
-      setProcessing(false)
-      setDialogOpen(false)
-      setDialogAction(null)
-    }
-  }
-
-  const handleToggleAdmin = async () => {
-    if (!dialogAdminAction) return
-    try {
-      setProcessing(true)
-      const res = await api.put(`/manage/users/${dialogAdminAction.id}/admin`, {
-        is_admin: dialogAdminAction.is_admin,
-      })
-      if (res.data?.success) {
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.user_id === dialogAdminAction.id
-              ? { ...user, is_admin: dialogAdminAction.is_admin }
-              : user
-          )
-        )
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update admin privileges.")
-    } finally {
-      setProcessing(false)
-      setAdminDialogOpen(false)
-      setDialogAdminAction(null)
-    }
-  }
 
 
   // Status color helper
@@ -339,9 +288,18 @@ const ManageUsersPage = () => {
             indicatorColor="primary"
             textColor="primary"
           >
-            <Tab icon={<PersonIcon />} label="All Users" />
-            <Tab icon={<WorkIcon />} label="Staff Members" />
-            <Tab icon={<PeopleIcon />} label="Residents" />
+            <Tab
+              icon={<PersonIcon />}
+              label={`All Users (${users.length})`}
+            />
+            <Tab
+              icon={<WorkIcon />}
+              label={`Staff Members (${staff.length})`}
+            />
+            <Tab
+              icon={<PeopleIcon />}
+              label={`Residents (${residents.length})`}
+            />
           </Tabs>
         </Card>
 
@@ -371,7 +329,7 @@ const ManageUsersPage = () => {
             >
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
+              <MenuItem value="inactive">suspended</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -392,110 +350,34 @@ const ManageUsersPage = () => {
                 ))}
               </>
             ) : (
-              <DataGrid
-                rows={filteredData}
-                columns={
-                  tabValue === 0 ? userColumns : tabValue === 1 ? staffColumns : residentColumns
-                }
-                getRowId={(row) =>
-                  `${tabValue}-${row.user_id || row.staff_id || row.resident_id}`
-                }
-                initialState={{
-                  pagination: {
-                    paginationModel: { page: 0, pageSize: 10 },
-                  },
-                }}
-                pageSizeOptions={[10, 25, 50]}
-                checkboxSelection={false}
-                disableRowSelectionOnClick
-              />
+            <DataGrid
+  rows={filteredData}
+  columns={
+    tabValue === 0 ? userColumns : tabValue === 1 ? staffColumns : residentColumns
+  }
+  getRowId={(row) =>
+    `${tabValue}-${row.user_id || row.staff_id || row.resident_id}`
+  }
+  initialState={{
+    pagination: { paginationModel: { page: 0, pageSize: 10 } },
+    columns: {
+      columnVisibilityModel: {
+        // default visibility
+        created_at: true,
+        email: true,
+        actions: true,
+      },
+    },
+  }}
+  pageSizeOptions={[10, 25, 50]}
+  checkboxSelection={false}
+  disableRowSelectionOnClick
+/>
             )}
           </CardContent>
         </Card>
 
-        {/* Action Dialogs */}
-        {/* Status Update Dialog */}
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-          <DialogTitle>
-            {dialogAction?.action === "activate" ? "Activate User" : "Deactivate User"}
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              {dialogAction?.action === "activate"
-                ? "Are you sure you want to activate this user? Activating a user will grant them access to the platform and its features."
-                : "Are you sure you want to deactivate this user? Deactivating a user will restrict their access to the platform and its features."}
-            </DialogContentText>
-            <Typography variant="body2" sx={{ mt: 2 }}>
-              Please confirm your action. This change will take effect immediately and the user will be
-              notified of the status update.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDialogOpen(false)} disabled={processing}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() =>
-                dialogAction &&
-                handleUpdateUserStatus(
-                  dialogAction.id,
-                  dialogAction.action === "activate" ? "active" : "inactive"
-                )
-              }
-              color={dialogAction?.action === "activate" ? "success" : "error"}
-              disabled={processing}
-            >
-              {dialogAction?.action === "activate" ? "Activate" : "Deactivate"}
-              {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
-            </Button>
-          </DialogActions>
-        </Dialog>
 
-        {/* Admin Toggle Dialog */}
-        <Dialog open={adminDialogOpen} onClose={() => setAdminDialogOpen(false)}>
-          <DialogTitle>
-            {dialogAdminAction?.is_admin ? "Grant Admin Privileges" : "Revoke Admin Privileges"}
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              {dialogAdminAction?.is_admin
-                ? "Are you sure you want to make this user an admin?"
-                : "Are you sure you want to revoke admin access?"}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setAdminDialogOpen(false)} disabled={processing}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleToggleAdmin}
-              color={dialogAdminAction?.is_admin ? "success" : "error"}
-              disabled={processing}
-            >
-              Confirm
-              {processing && <CircularProgress size={24} sx={{ ml: 1 }} />}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-
-        <Dialog open={quickViewOpen} onClose={() => setQuickViewOpen(false)}>
-          <DialogTitle>{quickViewUser?.name}</DialogTitle>
-          <DialogContent>
-            <DialogContentText>Email: {quickViewUser?.email}</DialogContentText>
-            <DialogContentText>
-              Type: {quickViewUser?.user_type === "staff" ? "Staff" : "Resident"}
-            </DialogContentText>
-            <DialogContentText>Status: {quickViewUser?.status}</DialogContentText>
-            <DialogContentText>
-              Joined:{" "}
-              {new Date(quickViewUser?.created_at || "").toLocaleDateString()}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setQuickViewOpen(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
       </section>
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} theme="colored" />
     </>
