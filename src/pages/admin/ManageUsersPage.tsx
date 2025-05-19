@@ -286,9 +286,18 @@ const ManageUsersPage = () => {
             indicatorColor="primary"
             textColor="primary"
           >
-            <Tab icon={<PersonIcon />} label="All Users" />
-            <Tab icon={<WorkIcon />} label="Staff Members" />
-            <Tab icon={<PeopleIcon />} label="Residents" />
+            <Tab
+              icon={<PersonIcon />}
+              label={`All Users (${users.length})`}
+            />
+            <Tab
+              icon={<WorkIcon />}
+              label={`Staff Members (${staff.length})`}
+            />
+            <Tab
+              icon={<PeopleIcon />}
+              label={`Residents (${residents.length})`}
+            />
           </Tabs>
         </Card>
 
