@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AccessDenied Component matches snapshot 1`] = `
+<DocumentFragment>
+  <div
+    class="MuiContainer-root MuiContainer-maxWidthSm css-1wn3g6m-MuiContainer-root"
+  >
+    <div
+      class="MuiBox-root css-5uxyq9"
+    >
+      <div
+        data-testid="lock-icon"
+      >
+        LockIcon
+      </div>
+      <div
+        color="error"
+        component="h1"
+        variant="h4"
+      >
+        Access Denied
+      </div>
+      <div
+        color="textSecondary"
+        variant="body1"
+      >
+        Your account has been suspended due to policy violations!
+      </div>
+      <div
+        color="textSecondary"
+        variant="body2"
+      >
+        If you believe this is a mistake, please contact support. 
+        <a
+          href="mailto:sdproject.wits@gmail.com"
+          style="color: rgb(25, 118, 210); text-decoration: none;"
+        >
+          sdproject.wits@gmail.com
+        </a>
+      </div>
+      <button
+        color="primary"
+        sx="[object Object]"
+        variant="contained"
+      >
+        Back to Login
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
