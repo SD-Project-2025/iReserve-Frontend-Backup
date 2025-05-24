@@ -13,7 +13,7 @@ import {
   Divider,
   Alert,
   CircularProgress,
-  TextField,
+  
   Dialog,
   DialogTitle,
   DialogContent,
@@ -38,7 +38,6 @@ import {
   LocationOn as LocationIcon,
   Build as BuildIcon,
   Flag as FlagIcon,
-  Comment as CommentIcon,
   CheckCircle as CompleteIcon,
   Schedule as ScheduleIcon,
   Person as PersonIcon,
@@ -94,7 +93,7 @@ const MaintenanceDetailsPage = () => {
   const [report, setReport] = useState<MaintenanceReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [commentText, setCommentText] = useState("")
+  
   const [submitting, setSubmitting] = useState(false)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [newStatus, setNewStatus] = useState("")
@@ -122,24 +121,7 @@ const MaintenanceDetailsPage = () => {
     }
   }, [id])
 
-  const handleAddComment = async () => {
-    if (!commentText.trim()) return
-
-    try {
-      setSubmitting(true)
-      await api.post(`/maintenance/${id}/comments`, { text: commentText })
-
-      // Refresh report data
-      const response = await api.get(`/maintenance/${id}`)
-      setReport(response.data.data)
-      setCommentText("")
-    } catch (err) {
-      console.error("Error adding comment:", err)
-      setError("Failed to add comment. Please try again later.")
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  
 
   const handleUpdateStatus = async () => {
     if (!newStatus) return
@@ -334,27 +316,7 @@ const MaintenanceDetailsPage = () => {
               )}
 
               <Divider sx={{ my: 3 }} />
-              <Typography variant="h6" gutterBottom>
-                Add Comment
-              </Typography>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                placeholder="Type your comment here..."
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                sx={{ mb: 2 }}
-              />
-              <Button
-                variant="contained"
-                startIcon={<CommentIcon />}
-                onClick={handleAddComment}
-                disabled={!commentText.trim() || submitting}
-              >
-                Add Comment
-                {submitting && <CircularProgress size={24} sx={{ ml: 1 }} />}
-              </Button>
+             
             </CardContent>
           </Card>
         </Grid>
@@ -436,14 +398,7 @@ const MaintenanceDetailsPage = () => {
               
             </Select>
           </FormControl>
-          <TextField
-            fullWidth
-            label="Notes"
-            multiline
-            rows={3}
-            value={statusNote}
-            onChange={(e) => setStatusNote(e.target.value)}
-          />
+         
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setStatusDialogOpen(false)} disabled={submitting}>
