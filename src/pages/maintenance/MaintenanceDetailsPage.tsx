@@ -13,7 +13,7 @@ import {
   Divider,
   Alert,
   CircularProgress,
-  TextField,
+  
   Dialog,
   DialogTitle,
   DialogContent,
@@ -38,7 +38,6 @@ import {
   LocationOn as LocationIcon,
   Build as BuildIcon,
   Flag as FlagIcon,
-  Comment as CommentIcon,
   CheckCircle as CompleteIcon,
   Schedule as ScheduleIcon,
   Person as PersonIcon,
@@ -94,7 +93,7 @@ const MaintenanceDetailsPage = () => {
   const [report, setReport] = useState<MaintenanceReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [commentText, setCommentText] = useState("")
+  
   const [submitting, setSubmitting] = useState(false)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [newStatus, setNewStatus] = useState("")
@@ -122,24 +121,7 @@ const MaintenanceDetailsPage = () => {
     }
   }, [id])
 
-  const handleAddComment = async () => {
-    if (!commentText.trim()) return
-
-    try {
-      setSubmitting(true)
-      await api.post(`/maintenance/${id}/comments`, { text: commentText })
-
-      // Refresh report data
-      const response = await api.get(`/maintenance/${id}`)
-      setReport(response.data.data)
-      setCommentText("")
-    } catch (err) {
-      console.error("Error adding comment:", err)
-      setError("Failed to add comment. Please try again later.")
-    } finally {
-      setSubmitting(false)
-    }
-  }
+  
 
   const handleUpdateStatus = async () => {
     if (!newStatus) return
