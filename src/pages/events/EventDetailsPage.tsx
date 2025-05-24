@@ -83,6 +83,13 @@ interface Event {
   }
 }
 
+interface Attendee {
+  resident_id: number
+  name: string
+  email: string
+  payment_status: string
+}
+
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -94,7 +101,11 @@ const EventDetailsPage = () => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
-  
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [attendeesLoading, setAttendeesLoading] = useState(false)
+  const [attendeesError, setAttendeesError] = useState<string | null>(null)
+  const [showAttendees, setShowAttendees] = useState(false)
+    
   const fetchEventDetails = async () => {
     try {
       setLoading(true)
@@ -161,6 +172,23 @@ const EventDetailsPage = () => {
   useEffect(() => {
     if (id) fetchEventDetails()
   }, [id, user?.id])
+
+
+  const fetchAttendees = async () => {
+    try {
+      setAttendeesLoading(true)
+      setAttendeesError(null)
+      const response = await api.get(`/events/${id}/attendees`)
+      setAttendees(response.data.data)
+      setShowAttendees(true)
+      setSuccess("Attendees retrieved successfully")
+    } catch (err) {
+      setAttendeesError("Failed to retrieve attendees. Please try again.")
+      console.error(err)
+    } finally {
+      setAttendeesLoading(false)
+    }
+  }
 
   const handleRegister = async () => {
     try {
@@ -581,6 +609,68 @@ const EventDetailsPage = () => {
               </Box>
             </CardContent>
           </Card>
+
+          <Card sx={{ mt: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Attendees</Typography>
+                {user?.type !== 'resident' && !showAttendees && (
+                  <Button
+                    variant="outlined"
+                    onClick={fetchAttendees}
+                    startIcon={<GroupIcon />}
+                    disabled={attendeesLoading}
+                  >
+                    {attendeesLoading ? <CircularProgress size={24} /> : "View Attendees"}
+                  </Button>
+                )}
+              </Box>
+
+              {attendeesError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {attendeesError}
+                </Alert>
+              )}
+
+              {showAttendees && (
+                <>
+                  {attendees.length === 0 ? (
+                    <Alert severity="info">No attendees found for this event.</Alert>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {attendees.map((attendee) => (
+                        <Grid item xs={12} sm={6} md={4} key={attendee.resident_id}>
+                          <Card variant="outlined">
+                            <CardContent>
+                              <Typography variant="subtitle1" gutterBottom>
+                                {attendee.name}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                {attendee.email}
+                              </Typography>
+                              <Chip
+                                label={`Payment: ${attendee.payment_status}`}
+                                color={
+                                  attendee.payment_status === "paid" 
+                                    ? "success" 
+                                    : attendee.payment_status === "pending"
+                                    ? "warning"
+                                    : "error"
+                                }
+                                size="small"
+                              />
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+
           <Box sx={{ display: "flex", alignItems: "center", mb:2 }}>
             <LocationMap Facility={event.facilityLoc} />
           </Box>
@@ -600,7 +690,7 @@ const EventDetailsPage = () => {
 
               <Button
                 variant="outlined"
-                onClick={() => navigate(`/facilities/${event.facility?.facility_id}`)}
+                onClick={() => navigate(`/facilities/${event.facilityLoc?.facility_id}`)}
                 fullWidth
                 sx={{ mb: 2 }}
               >
@@ -717,6 +807,27 @@ const EventDetailsPage = () => {
       >
         <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
           {success}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!attendeesError || !!success}
+        autoHideDuration={5000}
+        onClose={() => {
+          setAttendeesError(null)
+          setSuccess(null)
+        }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => {
+            setAttendeesError(null)
+            setSuccess(null)
+          }} 
+          severity={attendeesError ? "error" : "success"}
+          sx={{ width: '100%' }}
+        >
+          {attendeesError || success}
         </Alert>
       </Snackbar>
     </section>
