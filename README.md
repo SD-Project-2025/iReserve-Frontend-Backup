@@ -48,13 +48,6 @@ A responsive frontend application for managing community sports facilities, book
 
 ---
 
-### ⚙️ Environment Variables
-
-Create a `.env` file using `.env.example` with the following variables:
-
-```env
-VITE_API_BASE_URL=https://your-backend-api.com/api/v1
-VITE_GOOGLE_CLIENT_ID=your_google_client_id
 
 ##📥 Installation
 # Clone the repository
@@ -66,4 +59,14 @@ npm install
 
 # Start the development server
 npm run dev
+
+
+### ⚙️ Environment Variables
+
+Create a `.env` file using `.env.example` with the following variables:
+
+```env
+VITE_API_BASE_URL=https://your-backend-api.com/api/v1
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+
 
