@@ -1,7 +1,6 @@
 # iReserve-Frontend
 [![codecov](https://codecov.io/gh/SD-Project-2025/iReserve-Frontend-Backup/graph/badge.svg?token=dZ53gSdc1G)](https://codecov.io/gh/SD-Project-2025/iReserve-Frontend-Backup)
 
-# iReserve-frontend  
 **iReserve Web Application UI**
 
 A responsive frontend application for managing community sports facilities, bookings, events, and maintenance — designed to empower residents, staff, and administrators through a seamless user experience.
@@ -133,8 +132,8 @@ Role management interface
 
 📮 Contact
 For any frontend-related issues or contributions, contact:
-📧 Frontend Team – frontend@ireserve-system.com
-🌐 Project: ireserve-frontend
+📧 Frontend Team – ireserve.temp@devs-central.co.za
+🌐 Project: iReserve-frontend
 
 ### ⚙️ Environment Variables
 
