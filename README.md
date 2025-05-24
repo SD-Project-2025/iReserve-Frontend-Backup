@@ -87,6 +87,54 @@ Aim for 80%+ coverage
 
 Write tests for all critical features
 
+📖 Usage
+Residents can:
+
+Browse and book facilities
+
+Submit maintenance reports
+
+Register for events
+
+Staff can:
+
+Approve/reject bookings
+
+Manage and update maintenance reports
+
+View event registration data
+
+Admins can:
+
+Manage users, assign roles
+
+Create facilities and events
+
+Access dashboards and download reports
+
+📊 Report Features
+Facility Usage Trends
+
+Maintenance Reports (Open vs Closed)
+
+Custom Report Views
+→ All exportable as CSV or PDF
+
+🚧 Coming Soon
+PWA support for mobile access
+
+Advanced filters for reports
+
+Email + push notification integration
+
+Dark mode UI toggle
+
+Role management interface
+
+📮 Contact
+For any frontend-related issues or contributions, contact:
+📧 Frontend Team – frontend@ireserve-system.com
+🌐 Project: ireserve-frontend
 
 ### ⚙️ Environment Variables
 
