@@ -3,17 +3,18 @@ import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { BrowserRouter } from "react-router-dom"
 import MainLayout from "../../layouts/MainLayout"
+import '@testing-library/jest-dom'
  
 
 // Mock services/api
-jest.mock("@/services/api", () => ({
+jest.mock("../../services/api", () => ({
   api: {
     get: jest.fn(),
   },
 }))
 
 // Mock useAuth hook
-jest.mock("@/contexts/AuthContext", () => ({
+jest.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({
     user: {
       name: "John Doe",
@@ -25,7 +26,7 @@ jest.mock("@/contexts/AuthContext", () => ({
 }))
 
 // Mock useTheme hook
-jest.mock("@/contexts/ThemeContext", () => ({
+jest.mock("../../contexts/ThemeContext", () => ({
   useTheme: () => ({
     mode: "light",
     toggleTheme: jest.fn(),
@@ -34,7 +35,7 @@ jest.mock("@/contexts/ThemeContext", () => ({
 
 describe("MainLayout Component", () => {
   const renderWithProviders = (user = { type: "staff" }) => {
-    jest.mocked(require("@/contexts/AuthContext").useAuth).mockReturnValue({
+    jest.mocked(require("../../contexts/AuthContext").useAuth).mockReturnValue({
       user,
       logout: jest.fn(),
     })
@@ -48,7 +49,7 @@ describe("MainLayout Component", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.mocked(require("@/services/api").api.get).mockResolvedValue({ data: { data: [] } })
+    jest.mocked(require("../../services/api").api.get).mockResolvedValue({ data: { data: [] } })
   })
 
   test("renders layout with default staff user", async () => {
@@ -70,7 +71,7 @@ describe("MainLayout Component", () => {
   })
 
   test("shows super admin menu when user is super admin", async () => {
-    jest.mocked(require("@/services/api").api.get).mockResolvedValueOnce({
+    jest.mocked(require("../../services/api").api.get).mockResolvedValueOnce({
       data: { data: { profile: { is_admin: true } } },
     })
 
@@ -84,7 +85,7 @@ describe("MainLayout Component", () => {
 
   test("toggles theme when dark mode button is clicked", async () => {
     const toggleThemeMock = jest.fn()
-    jest.mocked(require("@/contexts/ThemeContext").useTheme).mockReturnValue({
+    jest.mocked(require("../../contexts/ThemeContext").useTheme).mockReturnValue({
       mode: "light",
       toggleTheme: toggleThemeMock,
     })
@@ -111,7 +112,7 @@ describe("MainLayout Component", () => {
   })
 
   test("displays correct notifications count", async () => {
-    jest.mocked(require("@/services/api").api.get).mockResolvedValueOnce({
+    jest.mocked(require("../../services/api").api.get).mockResolvedValueOnce({
       data: { data: [{ id: 1 }, { id: 2 }] },
     })
 

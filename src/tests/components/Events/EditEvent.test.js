@@ -4,11 +4,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 //@ts-ignore
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import EditEvent from '@/components/Events/EditEvent';
-import { api } from '@/services/api';
+import EditEvent from '../../../components/Events/EditEvent';
+import { api } from '../../../services/api';
 
 // Mock the API and react-router-dom
-jest.mock('@/services/api');
+jest.mock('../../../services/api');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => jest.fn(),
@@ -51,7 +51,7 @@ describe('EditEvent Component', () => {
     jest.clearAllMocks();
     
     // Mock API responses
-    (api.get as jest.Mock)
+    api.get
       .mockResolvedValueOnce({ data: { data: mockEvent } }) // Event data
       .mockResolvedValueOnce({ data: { data: mockFacilities } }); // Facilities
   });
@@ -107,7 +107,7 @@ describe('EditEvent Component', () => {
   });
 
   test('handles form submission', async () => {
-    (api.put as jest.Mock).mockResolvedValue({});
+    api.put.mockResolvedValue({});
 
     render(
       <MemoryRouter initialEntries={['/events/1/edit']}>
@@ -128,8 +128,7 @@ describe('EditEvent Component', () => {
   });
 
   test('displays error when API fails', async () => {
-    (api.get as jest.Mock)
-      .mockRejectedValueOnce(new Error('API Error'));
+    api.get.mockRejectedValueOnce(new Error('API Error'));
 
     render(
       <MemoryRouter initialEntries={['/events/1/edit']}>

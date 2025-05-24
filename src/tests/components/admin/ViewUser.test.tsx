@@ -1,11 +1,11 @@
 import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
-import ViewUser from "@/components/admin/ViewUser";
-import { api } from "@/services/api";
+import ViewUser from "../../../components/admin/ViewUser";
+import { api } from "../../../services/api";
 import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
 // Mock API and hooks
-jest.mock("@/services/api");
+jest.mock("../../../services/api");
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
   useParams: () => ({ id: "1" }),
