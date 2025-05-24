@@ -791,20 +791,22 @@ const ViewUser: React.FC = () => {
           </Typography>
           
           <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="flex-end">
-            <Button
-              variant="contained"
-              color={user.is_admin ? "error" : "success"}
-              startIcon={<AdminIcon />}
-              onClick={() => openAdminDialog(user.user_id, !user.is_admin)}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-                minWidth: 160
-              }}
-            >
-              {user.is_admin ? "Revoke Admin" : "Make Admin"}
-            </Button>
+            {userType === 'staff' && (
+    <Button
+      variant="contained"
+      color={user.is_admin ? "error" : "success"}
+      startIcon={<AdminIcon />}
+      onClick={() => openAdminDialog(user.user_id, !user.is_admin)}
+      sx={{ 
+        borderRadius: 2,
+        textTransform: "none",
+        fontWeight: 600,
+        minWidth: 160
+      }}
+    >
+      {user.is_admin ? "Revoke Admin" : "Make Admin"}
+    </Button>
+  )}
 
             {userType === "resident" ? (
               <Button
