@@ -55,3 +55,14 @@ Create a `.env` file using `.env.example` with the following variables:
 ```env
 VITE_API_BASE_URL=https://your-backend-api.com/api/v1
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
+
+# Clone the repository
+git clone https://github.com/SD-Project-2025/iReserve-frontend.git
+cd iReserve-frontend
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+
