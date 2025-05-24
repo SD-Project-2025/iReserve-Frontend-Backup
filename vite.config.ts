@@ -1,36 +1,37 @@
-import { defineConfig } from "vite"
-import react from "@vitejs/plugin-react"
-import path from "path"
+import { defineConfig, loadEnv } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  build: {
-    outDir: 'build',  // Default is 'dist'
-  },
-  plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  // Load environment variables
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
+
+  return {
+    build: {
+      outDir: 'build',
     },
-  },
-  
-  server: {
-    port : 3000,
-    proxy: {
-      "/api/v1": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
+    plugins: [react()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
     },
-  },
-})
-
-
-interface ImportMetaEnv {
-  readonly VITE_GOOGLE_MAPS_API_KEY: string;
-  // Add other environment variables here if needed
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+    server: {
+      port: 3000,
+      proxy: {
+        "/api/v1": {
+          target: "http://localhost:5000",
+          changeOrigin: true,
+        },
+      },
+    },
+    // Add the process.env polyfill
+    define: {
+      'process.env': JSON.stringify({
+        ...env,
+        NODE_ENV: mode,
+      }),
+    },
+  };
+});

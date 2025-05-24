@@ -1,9 +1,8 @@
-//@ts-ignore
-import React from 'react'
+
 import { render, act, screen } from '@testing-library/react'
 import { useNavigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from '../../contexts/AuthContext' // Adjust the import path
-import { api } from '@/services/api'
+import { AuthProvider, useAuth } from '../../contexts/AuthContext'
+import { api } from '../../services/api'
 import { jwtDecode } from 'jwt-decode'
 
 // Mock dependencies
@@ -11,7 +10,7 @@ jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn(),
 }))
 
-jest.mock('@/services/api', () => ({
+jest.mock('../../services/api', () => ({
   api: {
     defaults: {
       headers: {
@@ -49,6 +48,7 @@ describe('AuthContext', () => {
   const mockJwtDecode = jwtDecode as jest.MockedFunction<typeof jwtDecode>
   
   beforeEach(() => {
+    process.env.VITE_API_URL = 'http://test-api-url'
     ;(useNavigate as jest.Mock).mockReturnValue(mockNavigate)
     jest.clearAllMocks()
     localStorageMock.clear()
@@ -124,7 +124,9 @@ describe('AuthContext', () => {
       auth.login()
     })
 
-    expect(window.location.href).toContain('/auth/google?redirect_uri=')
+    expect(window.location.href).toBe(
+      'http://test-api-url/auth/google?redirect_uri=https%3A%2F%2Fyellow-river-065faef1e.6.azurestaticapps.net%2Fauth%2Fcallback'
+    )
   })
 
   it('handles logout correctly', () => {
@@ -249,7 +251,6 @@ describe('AuthContext', () => {
   })
 
   it('throws error when useAuth is used outside AuthProvider', () => {
-    // Suppress console error for this test
     const originalError = console.error
     console.error = jest.fn()
     

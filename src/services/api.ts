@@ -2,7 +2,7 @@ import axios from "axios";
 
 // In Vite, you need to use import.meta.env instead of process.env
 //@ts-ignore
-const APIUrl = import.meta.env.VITE_API_URL;
+const APIUrl =process.env.VITE_API_URL;
 
 export const api = axios.create({
   baseURL: APIUrl

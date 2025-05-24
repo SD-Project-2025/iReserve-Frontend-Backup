@@ -1,6 +1,6 @@
 
 import { render, screen } from "@testing-library/react";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeProvider } from "../../contexts/ThemeContext";
 import AuthLayout from "../../layouts/AuthLayout";
 //@ts-ignore
 import React from "react";

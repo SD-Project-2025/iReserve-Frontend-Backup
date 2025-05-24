@@ -1,4 +1,6 @@
+import { m } from "framer-motion";
 import { createDefaultPreset } from "ts-jest";
+
 
 const tsJestTransformCfg = createDefaultPreset().transform;
 
@@ -19,6 +21,10 @@ const config = {
     "src/**/*.{js,jsx,ts,tsx}",
     "!src/**/*.d.ts"
   ],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.svg$': '<rootDir>/__mocks__/svgMock.js',
+  },
 };
 
 export default config;

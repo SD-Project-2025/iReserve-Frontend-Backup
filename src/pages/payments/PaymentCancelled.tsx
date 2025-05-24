@@ -1,3 +1,4 @@
+// PaymentCancelled Component
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
@@ -25,7 +26,7 @@ const PaymentCancelled = () => {
 
   return (
     <Box sx={{ p: 4, textAlign: 'center' }}>
-      <CancelIcon sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
+      <CancelIcon data-testid="cancel-icon" sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
       <Typography variant="h4" gutterBottom>
         Payment Cancelled ⚠️
       </Typography>

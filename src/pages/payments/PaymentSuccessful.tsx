@@ -1,3 +1,4 @@
+// PaymentSuccessful Component
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
@@ -25,7 +26,7 @@ const PaymentSuccessful = () => {
 
   return (
     <Box sx={{ p: 4, textAlign: 'center' }}>
-      <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+      <CheckCircleIcon data-testid="success-icon" sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
       <Typography variant="h4" gutterBottom>
         Payment Successful! 🎉
       </Typography>
