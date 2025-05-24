@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false)
   }, [])
   //@ts-ignore
-const APIURL =import.meta.env.VITE_API_URL
+const APIURL = process.env.VITE_API_URL
 //const RedirectURL = process.env.VITE_REDIRECT_URL
   const login = useCallback(() => {
     //@ts-ignore
