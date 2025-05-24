@@ -27,6 +27,7 @@ import {
   DialogActions,
   Rating,
   TextField,
+  Snackbar,
 } from "@mui/material"
 import {
   AccessTime as TimeIcon,
@@ -78,7 +79,6 @@ interface Event {
 interface Rating {
   rating_id: number
   user_id: number
-  user_name: string
   rating: number
   comment: string
   created_at: string
@@ -98,14 +98,18 @@ const FacilityDetailsPage = () => {
   const [userRating, setUserRating] = useState<number | null>(null)
   const [comment, setComment] = useState<string>("")
   const [ratingLoading, setRatingLoading] = useState(false)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [residentNames, setResidentNames] = useState<Record<number, string>>({});
 
   useEffect(() => {
+
     const fetchFacilityDetails = async () => {
       try {
         setLoading(true)
         setError(null)
 
         const facilityResponse = await api.get(`/facilities/${id}`)
+        console.log("Fetched facility data:", facilityResponse.data)
         
         if (!facilityResponse.data?.success) {
           throw new Error(facilityResponse.data?.message || "Failed to fetch facility")
@@ -118,7 +122,16 @@ const FacilityDetailsPage = () => {
 
         setFacility(facilityData)
         setRatings(facilityData.FacilityRatings || [])
-
+        // Get resident names for ratings
+        if (facilityData.FacilityRatings?.length) {
+          const userIds = facilityData.FacilityRatings.map((r: Rating) => r.user_id);
+          const namesResponse = await api.post('/residents/names', { user_ids: userIds });
+          
+          if (namesResponse.data?.success) {
+            setResidentNames(namesResponse.data.data);
+          }
+        }
+        
         try {
           const bookingsResponse = await api.get(`/facilities/${id}/bookings`)
           setBookings(bookingsResponse.data?.data || [])
@@ -150,6 +163,10 @@ const FacilityDetailsPage = () => {
       setLoading(false)
     }
   }, [id])
+
+  const getResidentName = (userId: number): string => {
+    return residentNames[userId] || `User ${userId}`;
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -214,6 +231,14 @@ const FacilityDetailsPage = () => {
         setFacility(facilityResponse.data.data)
         setComment("")
         setUserRating(null)
+        await api.post("/notifications", {
+        title: "Rating Submitted",
+        message: `You have successfully rated the facility ${facility?.name}.`,
+        type: "event",
+        related_id: id,
+        related_type: "event",
+        })
+        setSuccess("Rating submitted successfully!")
       }
     } catch (err: any) {
       console.error("Error submitting rating:", err)
@@ -407,7 +432,9 @@ const FacilityDetailsPage = () => {
                   {ratings.map((rating) => (
                     <Box key={rating.rating_id} sx={{ mb: 3, pb: 2, borderBottom: '1px solid #eee' }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography fontWeight="bold">{rating.user_name}</Typography>
+                        <Typography fontWeight="bold">
+                          {getResidentName(rating.user_id)}
+                        </Typography>
                         <Typography color="text.secondary">
                           {new Date(rating.created_at).toLocaleDateString()}
                         </Typography>
@@ -630,7 +657,20 @@ const FacilityDetailsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      <Snackbar
+        open={!!success}
+        autoHideDuration={5000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
     </Box>
+
+    
   )
 }
 
