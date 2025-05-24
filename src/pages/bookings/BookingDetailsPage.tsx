@@ -30,7 +30,7 @@ import { api } from "@/services/api"
 
 interface Booking {
   booking_id: number
-  facility: {
+  Facility: {
     facility_id: number
     name: string
     location: string
@@ -62,6 +62,7 @@ const BookingDetailsPage = () => {
         console.log("Booking ID from route:", id)
 
         const response = await api.get(`/bookings/${id}`)
+        console.log("Booking Data," , response.data)
         console.log("Fetched booking data:", response.data)
         setBooking(response.data.data)
       } catch (err: any) {
@@ -168,7 +169,7 @@ const BookingDetailsPage = () => {
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <LocationIcon color="action" sx={{ mr: 1 }} />
                 <Typography>
-                  {booking.facility?.name} • {booking.facility?.location}
+                  {booking.Facility?.name} • {booking.Facility?.location}
                 </Typography>
               </Box>
 
@@ -223,7 +224,7 @@ const BookingDetailsPage = () => {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate(`/facilities/${booking.facility?.facility_id}`,{state:{id: booking.facility?.facility_id}})}
+                  onClick={() => navigate(`/facilities/${booking.Facility?.facility_id}`,{state:{id: booking.Facility?.facility_id}})}
                   fullWidth
                 >
                   View Facility
