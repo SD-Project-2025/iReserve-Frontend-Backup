@@ -60,6 +60,19 @@ npm install
 # Start the development server
 npm run dev
 
+# 📁 Project Structure
+bash
+Copy
+Edit
+src/
+│
+├── components/          # Shared UI components (Navbar, Sidebar, etc.)
+├── pages/               # Page components by route (Dashboard, Bookings, etc.)
+├── context/             # Auth and global state management
+├── hooks/               # Custom React hooks
+├── utils/               # Utility functions (e.g., API helpers, PDF export)
+├── assets/              # Static images, logos, icons
+└── App.jsx              # App root with routes
 
 ### ⚙️ Environment Variables
 
