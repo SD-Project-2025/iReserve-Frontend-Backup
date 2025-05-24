@@ -74,6 +74,20 @@ src/
 ├── assets/              # Static images, logos, icons
 └── App.jsx              # App root with routes
 
+🧪 Testing
+bash
+Copy
+Edit
+# Run tests
+npm test
+
+# Run test coverage
+npm run test:coverage
+Aim for 80%+ coverage
+
+Write tests for all critical features
+
+
 ### ⚙️ Environment Variables
 
 Create a `.env` file using `.env.example` with the following variables:
