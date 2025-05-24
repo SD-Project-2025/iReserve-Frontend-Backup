@@ -1019,23 +1019,31 @@ const ViewUser: React.FC = () => {
           <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 1, fontSize: "1rem" }}>
             Please enter the employee ID. A prefix like EMP will be added automatically.
           </Typography>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Employee ID"
-            id="employee-id"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            helperText="Example: Entering '123' will result in 'EMP123'"
-            disabled={processing}
-            sx={{ 
-              mt: 2,
-              '& .MuiOutlinedInput-root': { borderRadius: 2 }
-            }}
-          />
+         <TextField
+  autoFocus
+  margin="dense"
+  label="Employee ID"
+  id="employee-id"
+  type="text"
+  fullWidth
+  variant="outlined"
+  value={employeeId}
+  onChange={(e) => {
+    // Allow only numeric input
+    const numericValue = e.target.value.replace(/[^0-9]/g, '');
+    setEmployeeId(numericValue);
+  }}
+  helperText="Example: Entering '123' will result in 'EMP123'"
+  disabled={processing}
+  inputProps={{
+    inputMode: 'numeric', // Show numeric keyboard on mobile
+    pattern: '[0-9]*' // HTML pattern validation
+  }}
+  sx={{ 
+    mt: 2,
+    '& .MuiOutlinedInput-root': { borderRadius: 2 }
+  }}
+/>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button 
