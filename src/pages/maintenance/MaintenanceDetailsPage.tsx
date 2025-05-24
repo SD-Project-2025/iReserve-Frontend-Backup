@@ -334,27 +334,7 @@ const MaintenanceDetailsPage = () => {
               )}
 
               <Divider sx={{ my: 3 }} />
-              <Typography variant="h6" gutterBottom>
-                Add Comment
-              </Typography>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                placeholder="Type your comment here..."
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                sx={{ mb: 2 }}
-              />
-              <Button
-                variant="contained"
-                startIcon={<CommentIcon />}
-                onClick={handleAddComment}
-                disabled={!commentText.trim() || submitting}
-              >
-                Add Comment
-                {submitting && <CircularProgress size={24} sx={{ ml: 1 }} />}
-              </Button>
+             
             </CardContent>
           </Card>
         </Grid>
@@ -436,14 +416,7 @@ const MaintenanceDetailsPage = () => {
               
             </Select>
           </FormControl>
-          <TextField
-            fullWidth
-            label="Notes"
-            multiline
-            rows={3}
-            value={statusNote}
-            onChange={(e) => setStatusNote(e.target.value)}
-          />
+         
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setStatusDialogOpen(false)} disabled={submitting}>
