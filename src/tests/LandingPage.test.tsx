@@ -178,3 +178,5 @@ describe('LandingPage', () => {
     });
   });
 });
+
+//fixed event though it shows an error
