@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { render, act, screen, fireEvent } from '@testing-library/react'
 import { useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '../../contexts/AuthContext'
