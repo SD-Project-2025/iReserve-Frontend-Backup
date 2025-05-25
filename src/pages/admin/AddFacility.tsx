@@ -31,8 +31,8 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ClearIcon from "@mui/icons-material/Clear";
 
 // Environment variables
-const CLOUDINARY_UPLOAD_URL = import.meta.env.VITE_CLOUDINARY_UPLOAD_URL;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES;
+const CLOUDINARY_UPLOAD_URL = process.env.VITE_CLOUDINARY_UPLOAD_URL;
+const CLOUDINARY_UPLOAD_PRESET = process.env.VITE_CLOUDINARY_UPLOAD_PRESET_FACILITIES;
 
 interface FacilityFormData {
   name: string;
@@ -266,12 +266,15 @@ const AddFacility = () => {
       // Create form data for Cloudinary upload
       const formData = new FormData();
       formData.append('file', imageFile);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET); // Using environment variable
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET ?? ""); // Using environment variable
       // No need to specify folder as it's configured in the preset
       
       setUploadProgress(40);
       
       // Upload directly to Cloudinary using environment variable for upload URL
+      if (!CLOUDINARY_UPLOAD_URL) {
+        throw new Error("Cloudinary upload URL is not configured.");
+      }
       const response = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: 'POST',
         body: formData

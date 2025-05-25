@@ -17,10 +17,7 @@ const config = {
 
   collectCoverage: true,
   coverageDirectory: "coverage",
-  collectCoverageFrom: [
-    "src/**/*.{js,jsx,ts,tsx}",
-    "!src/**/*.d.ts"
-  ],
+  
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.svg$': '<rootDir>/__mocks__/svgMock.js',
