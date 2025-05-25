@@ -101,7 +101,7 @@ const ss = [bookings, facilities, events, notifications,apiLoading, error]
 
   // For development, allow testing different dashboards
   //@ts-ignore
-  if (import.meta.env.DEV) {
+  if (process.env.DEV) {
     // You can change this to test different dashboards
     const dashboardType = user?.type || "resident"
 

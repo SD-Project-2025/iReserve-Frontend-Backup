@@ -20,7 +20,7 @@
     "@mui/lab": "^5.0.0-alpha.165",
     "@mui/material": "^5.15.10",
     "@mui/x-data-grid": "^6.19.4",
-    "@mui/x-date-pickers": "^6.19.4",
+    "@mui/x-date-pickers": "^6.20.2",
     "axios": "^1.6.7",
     "babel-plugin-module-resolver": "^5.0.2",
     "chart.js": "^4.4.9",
