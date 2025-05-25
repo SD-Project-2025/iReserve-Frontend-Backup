@@ -1,14 +1,5 @@
-// Import Jest's expect explicitly
-import { expect } from '@jest/globals';
-// Then import the DOM matchers
 import '@testing-library/jest-dom';
 
-// Make sure global types are available
-declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeInTheDocument(): R;
-      // Add other matchers as needed
-    }
-  }
-}
+// Mock environment variables
+process.env.VITE_CHATBOT_AGENT_ID = '685fb76a-30f7-4ea0-a93e-414670f66967';
+process.env.VITE_CHATBOT_PROJECT_ID = 'ireservechatbot';

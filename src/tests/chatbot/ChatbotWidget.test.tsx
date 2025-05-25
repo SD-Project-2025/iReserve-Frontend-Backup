@@ -2,14 +2,20 @@ import { render, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ChatbotWidget from '../../components/chatbot/ChatbotWidget';
 
+// Mock environment variables before tests
+
+beforeAll(() => {
+  process.env = {
+    ...process.env,
+    VITE_CHATBOT_AGENT_ID: 'test-agent-id',
+    VITE_CHATBOT_PROJECT_ID: 'test-project-id'
+  };
+});
+
+
+
 describe('ChatbotWidget', () => {
   beforeEach(() => {
-    process.env = {
-      ...process.env,
-      VITE_CHATBOT_AGENT_ID: 'test-agent-id',
-      VITE_CHATBOT_PROJECT_ID: 'test-project-id'
-    };
-
     jest.useFakeTimers();
     document.head.innerHTML = '';
     document.body.innerHTML = '';
@@ -27,14 +33,18 @@ describe('ChatbotWidget', () => {
     expect(link).toBeInTheDocument();
   });
 
-  test('shows and auto-closes tooltip', () => {
+  test('shows and auto-closes tooltip', async () => {
     render(<ChatbotWidget />);
     const script = document.querySelector('script[src*="df-messenger.js"]');
+    
+    // Simulate successful script load
     script?.dispatchEvent(new Event('load'));
-
+    
+    // Advance timers and check tooltip
     jest.advanceTimersByTime(4000);
     expect(document.querySelector('.df-messenger-tooltip')).toBeInTheDocument();
-
+    
+    // Check tooltip auto-closes
     jest.advanceTimersByTime(8000);
     expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
   });
@@ -49,11 +59,3 @@ describe('ChatbotWidget', () => {
     expect(document.querySelector('.df-messenger-tooltip')).not.toBeInTheDocument();
   });
 });
-//Important Note:
-//This widget has a diferrent repo to run the tests but if you wish th soee the code cover rage do the following
-//Add this to jest.config.js
-
-//"test:coverage": "vitest run --coverage"
- //"test": "vitest",
- //ANd run the following command
- //npx vitest run --coverage src/tests/chatbot/ChatboardWidget.test.tsx --run

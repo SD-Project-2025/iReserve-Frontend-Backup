@@ -83,13 +83,20 @@ const ChatbotWidget = () => {
         `;
         document.head.appendChild(styleElement);
         //@ts-ignore
-        const AGENT_ID = import.meta.env.VITE_CHATBOT_AGENT_ID
+        // const AGENT_ID = process.env.VITE_CHATBOT_AGENT_ID;
+        const AGENT_ID = import.meta.env.VITE_CHATBOT_AGENT_ID;
+        const PROJECT_ID = import.meta.env.VITE_CHATBOT_PROJECT_ID;
         //@ts-ignore
-        const PROJECT_ID = import.meta.env.VITE_CHATBOT_PROJECT_ID
-        // Create the main df-messenger element
+        // const PROJECT_ID = process.env.VITE_CHATBOT_PROJECT_ID;
+        // if (!PROJECT_ID || !AGENT_ID) {
+        //   console.error('Dialogflow PROJECT_ID or AGENT_ID is not defined.');
+        //   return;
+        // }
+        console.log('Dialogflow PROJECT_ID:', PROJECT_ID);
+        console.log('Dialogflow AGENT_ID:', AGENT_ID);
         const dfMessenger = document.createElement('df-messenger');
-        dfMessenger.setAttribute('project-id',PROJECT_ID);
-        dfMessenger.setAttribute('agent-id',AGENT_ID);
+        dfMessenger.setAttribute('project-id', PROJECT_ID);
+        dfMessenger.setAttribute('agent-id', AGENT_ID);
         dfMessenger.setAttribute('language-code', 'en');
         dfMessenger.setAttribute('max-query-length', '-1');
         

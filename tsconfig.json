@@ -9,7 +9,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["vite/client","@types/google.maps","jest", "node"],
+    "types": ["vite/client","@types/google.maps","jest", "node","@testing-library/jest-dom"],
      
     "esModuleInterop": true,
 
